@@ -26,10 +26,10 @@ public class MarcReaderTest {
 	public void test1() throws FileNotFoundException {
         String[] fileArray = {
 		   //"/cul/src/order-import-poc/support/building_bridges.mrc",
-		   //"/cul/src/order-import-poc/support/gobi-sample-v2.mrc",
+		   "/cul/src/order-import-poc/support/gobi-sample-v2.mrc",
 		   //"/cul/src/order-import-poc/support/physical.mrc",
 		   "/cul/src/order-import-poc/support/requesters_5-records_2021-03-11.mrc",
-		   //"/cul/src/order-import-poc/support/harrassowitz_9-records_2021-03-10.mrc",
+		   "/cul/src/order-import-poc/support/harrassowitz_9-records_2021-03-10.mrc",
         };
         
 		List<String> files = Arrays.asList(fileArray);
@@ -50,6 +50,11 @@ public class MarcReaderTest {
 			    String notes =  new String();
 			    String fundCode = new String();
 			    String vendorCode =  new String();
+			    String price = new String();
+			    String quantity =  new String();
+			     
+			    String electronicIndicator = new String();
+			    String vendorItemId = new String();
 			    String email = new String();
 			    String personName = new String();
 			    
@@ -58,6 +63,10 @@ public class MarcReaderTest {
 			    	notes =  nineEighty.getSubfieldsAsString("n"); 
 				    fundCode = nineEighty.getSubfieldsAsString("b");
 				    vendorCode =  nineEighty.getSubfieldsAsString("v");
+				    quantity =  nineEighty.getSubfieldsAsString("q");
+				    price = nineEighty.getSubfieldsAsString("m");
+				    electronicIndicator = nineEighty.getSubfieldsAsString("z");
+				    vendorItemId = nineEighty.getSubfieldsAsString("c");
 				    email = nineEighty.getSubfieldsAsString("y");
 				    personName = nineEighty.getSubfieldsAsString("s");
 			    }
@@ -74,6 +83,11 @@ public class MarcReaderTest {
 			    }
 			    
 			    System.out.println("title: "+ title);
+			    System.out.println("quantity: "+ quantity);
+			    System.out.println("price: "+ price);
+			    System.out.println("vendorCode: "+ vendorCode);
+			    System.out.println("fundCode: "+ fundCode);
+			    System.out.println("electronicIndicator: "+ electronicIndicator);
 			    System.out.println("requestor: "+ requestor);
 			    System.out.println("loc: "+ loc);
 			    System.out.println("email: "+ email);
