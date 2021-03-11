@@ -903,20 +903,7 @@ public class OrderImportShortened {
 		return null;
 	}
 	
-	public JSONObject validateObjectCode(String objectCode, String title, String token, String baseOkapiEndpoint ) throws IOException, InterruptedException, Exception {
-		//---------->VALIDATION: MAKE SURE THE TAG (AKA OBJECT CODE) EXISTS
-		JSONObject responseMessage = new JSONObject();
-		String tagEndpoint = baseOkapiEndpoint + "tags?query=(label==" + objectCode + ")";
-		String tagResponse = callApiGet(tagEndpoint,  token);
-		JSONObject tagObject = new JSONObject(tagResponse);
-		if (tagObject.getJSONArray("tags").length() < 1) {
-			responseMessage.put("error", "Object code in the record (" + objectCode + ") does not exist in FOLIO");
-			responseMessage.put("title", title);
-			responseMessage.put("PONumber", "~error~");
-			return responseMessage;
-		}
-		return null;
-	}
+	
 	
 	public JSONObject validateOrganization(String orgCode, String title,  String token, String baseOkapiEndpoint ) throws IOException, InterruptedException, Exception {
 		JSONObject responseMessage = new JSONObject();
