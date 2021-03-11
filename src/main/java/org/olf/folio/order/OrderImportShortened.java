@@ -513,9 +513,7 @@ public class OrderImportShortened {
 						responseMessages.put(responseMessage);
 						continue;
 					}
-			    	
 					
-					String objectCode = nineEighty.getSubfieldsAsString("o");
 				    String fundCode = nineEighty.getSubfieldsAsString("b");
 				    String vendorCode =  nineEighty.getSubfieldsAsString("v");
 				    String notes =  nineEighty.getSubfieldsAsString("n");
@@ -527,8 +525,7 @@ public class OrderImportShortened {
 				    if (quantity != null)  quanityNo = Integer.valueOf(quantity);
 
 				    
-				    Map<String, String> requiredFields = new HashMap<String, String>();
-				    requiredFields.put("Object code",objectCode);
+				    Map<String, String> requiredFields = new HashMap<String, String>(); 
 				    requiredFields.put("Fund code",fundCode);
 				    requiredFields.put("Vendor Code",vendorCode);
 				    requiredFields.put("Price" , price);
@@ -553,8 +550,8 @@ public class OrderImportShortened {
 				    //STOP THE PROCESS IF AN ERRORS WERE FOUND
 				    JSONObject orgValidationResult = validateOrganization(vendorCode, title, token, baseOkapEndpoint);
 				    if (orgValidationResult != null) responseMessages.put(orgValidationResult);
-				    JSONObject objectValidationResult = validateObjectCode(objectCode, title, token, baseOkapEndpoint);
-				    if (objectValidationResult != null) responseMessages.put(objectValidationResult);
+				    
+				    				    
 				    JSONObject fundValidationResult = validateFund(fundCode, title, token, baseOkapEndpoint, price);
 				    if (fundValidationResult != null) responseMessages.put(fundValidationResult);
 				    return responseMessages;
