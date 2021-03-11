@@ -26,10 +26,13 @@ public class MarcReaderTest {
 	public void test1() throws FileNotFoundException {
         String[] fileArray = {
 		   //"/cul/src/order-import-poc/support/building_bridges.mrc",
-		   "/cul/src/order-import-poc/support/gobi-sample-v2.mrc",
+		   // "/cul/src/order-import-poc/support/gobi-sample-v2.mrc",
 		   //"/cul/src/order-import-poc/support/physical.mrc",
 		   "/cul/src/order-import-poc/support/requesters_5-records_2021-03-11.mrc",
-		   "/cul/src/order-import-poc/support/harrassowitz_9-records_2021-03-10.mrc",
+		   //"/cul/src/order-import-poc/support/harrassowitz_9-records_2021-03-10.mrc",
+		   //"/cul/src/order-import-poc/support/AmazonFO.1.mrc",
+		   //"/cul/src/order-import-poc/support/CouttsUKFO.1.mrc",
+		   "/cul/src/order-import-poc/support/MIDWEST.1.mrc",
         };
         
 		List<String> files = Arrays.asList(fileArray);
@@ -41,10 +44,17 @@ public class MarcReaderTest {
 			int numRec = 0;
 			while (reader.hasNext()) {
 				record = reader.next();
-				//System.out.println(record.toString());
+				System.out.println(record.toString());
 				numRec++;
+				
+				 
 				DataField twoFourFive = (DataField) record.getVariableField("245");
-			    String title = twoFourFive.getSubfieldsAsString("a");
+				String title = twoFourFive.getSubfieldsAsString("a");
+				String titleTwo = twoFourFive.getSubfieldsAsString("b");
+			    String titleThree = twoFourFive.getSubfieldsAsString("c");
+			    if (titleTwo != null) title += " " + titleTwo;
+			    if (titleThree != null) title += " " + titleThree;
+			    
 			    DataField nineEighty = (DataField) record.getVariableField("980");
 			    
 			    String notes =  new String();
@@ -59,12 +69,13 @@ public class MarcReaderTest {
 			    String personName = new String();
 			    
 			    if (nineEighty != null) {
-			    	System.out.println(nineEighty.toString());
+			    	//System.out.println(nineEighty.toString());
 			    	notes =  nineEighty.getSubfieldsAsString("n"); 
-				    fundCode = nineEighty.getSubfieldsAsString("b");
+				    //fundCode = nineEighty.getSubfieldsAsString("b");
+				    fundCode = nineEighty.getSubfieldsAsString("h");
 				    vendorCode =  nineEighty.getSubfieldsAsString("v");
 				    quantity =  nineEighty.getSubfieldsAsString("q");
-				    price = nineEighty.getSubfieldsAsString("m");
+				    //price = nineEighty.getSubfieldsAsString("m");
 				    electronicIndicator = nineEighty.getSubfieldsAsString("z");
 				    vendorItemId = nineEighty.getSubfieldsAsString("c");
 				    email = nineEighty.getSubfieldsAsString("y");
@@ -80,6 +91,7 @@ public class MarcReaderTest {
 			    String requestor = new String();
 			    if (nineFiveTwo != null) {
 			       requestor = nineEightyOne.getSubfieldsAsString("r");
+			       price = nineEightyOne.getSubfieldsAsString("i");
 			    }
 			    
 			    System.out.println("title: "+ title);
