@@ -149,7 +149,8 @@ public class OrderImport {
 				Integer quanityNo = 0; //INIT
 			    if (quantity != null)  quanityNo = Integer.valueOf(quantity); 
 				String price = marcUtils.getPrice(nineEighty, nineEightyOne);
-				
+
+				String notes =  marcUtils.getNotes(nineEighty);
 				String electronicIndicator = marcUtils.getElectronicIndicator(nineEighty);
 				if (electronicIndicator != null && electronicIndicator.equalsIgnoreCase("ELECTRONIC")) electronic = true;
 				
@@ -163,10 +164,6 @@ public class OrderImport {
 			    //PULL TOGETHER THE ENTIRE TITLE
 			    JSONObject responseMessage = new JSONObject();
 			    
-			    String titleTwo = twoFourFive.getSubfieldsAsString("b");
-			    String titleThree = twoFourFive.getSubfieldsAsString("c");
-			    if (titleTwo != null) title += " " + titleTwo;
-			    if (titleThree != null) title += " " + titleThree;
 			    //PUT THE TITLE IN THE RESPONSE MESSAGE
 			    responseMessage.put("title", title);
 
