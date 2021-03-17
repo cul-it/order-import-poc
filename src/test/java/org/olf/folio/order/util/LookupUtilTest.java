@@ -69,8 +69,8 @@ public class LookupUtilTest {
 		this.util.load();
 		Map<String,String> map = new HashMap<String, String>();
 		try {
-			fileOut = new PrintStream("/cul/src/order-import-poc/identifiers.txt");
-			System.setOut(fileOut);
+			//fileOut = new PrintStream("/cul/src/order-import-poc/identifiers.txt");
+			//System.setOut(fileOut);
 			map = this.util.getReferenceValues(this.token);
 			Iterator iter = map.keySet().iterator();
 			
@@ -90,9 +90,9 @@ public class LookupUtilTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
-			fileOut.close();
+			//fileOut.close();
 		}
-		System.setOut(originalOut);
+		//System.setOut(originalOut);
 		System.out.println("========================");
 		System.out.println("Mann-location: "+ map.get("Mann-location"));
 		System.out.println("Book: "+ map.get("Book"));
