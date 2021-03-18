@@ -10,6 +10,7 @@ import java.util.Map;
 import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,24 +30,44 @@ public class LookupUtilTest {
 	
 	@Before
 	public void init() {
+		String use_env = System.getenv("USE_SYSTEM_ENV");
+		if (StringUtils.isNotEmpty(use_env) && StringUtils.equals(use_env, "true")) {
+			config.setProperty("baseOkapEndpoint",  System.getenv("baseOkapEndpoint"));
+			config.setProperty("okapi_username", System.getenv("okapi_username"));
+			config.setProperty("okapi_password", System.getenv("okapi_password"));
+			config.setProperty("tenant", System.getenv("tenant"));
+	 
+			config.setProperty("permELocation", System.getenv("permELocation"));
+			config.setProperty("permLocation", System.getenv("permLocation"));
+			config.setProperty("fiscalYearCode", System.getenv("fiscalYearCode"));
+			config.setProperty("loanType", System.getenv("loanType"));
+			config.setProperty("textForElectronicResources", System.getenv("textForElectronicResources"));
+			config.setProperty("noteType", System.getenv("noteType"));
+			config.setProperty("materialType", System.getenv("materialType"));
+		 	
+		} else {
+		   PropertiesConfiguration props = new PropertiesConfiguration();
+		   try {
+			   props.load(ClassLoader.getSystemResourceAsStream("application.properties"));
+		    
+		   } catch (ConfigurationException e) {
+		      throw new RuntimeException(e);
+		   }
+		   config.addConfiguration(props);
+		} 
 		
-		try {
-		    props.load(ClassLoader.getSystemResourceAsStream("application.properties"));
-		} catch (ConfigurationException e) {
-		    throw new RuntimeException(e);
-		}
 		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("username", props.getString("okapi_username"));
-		jsonObject.put("password", props.getString("okapi_password"));
+		jsonObject.put("username", config.getProperty("okapi_username"));
+		jsonObject.put("password", config.getProperty("okapi_password"));
 		
-		this.tenant = props.getString("tenant");
+		this.tenant = (String) config.getProperty("tenant");
 		System.out.println("tenant: "+ this.tenant);
 		jsonObject.put("tenant",  this.tenant);
 		
 		ApiService apiService = new ApiService(this.tenant);
 		  
 		try {
-			this.token =  apiService.callApiAuth( props.getString("baseOkapEndpoint") + "authn/login",  jsonObject); 
+			this.token =  apiService.callApiAuth( (String) config.getProperty("baseOkapEndpoint") + "authn/login",  jsonObject); 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -58,7 +79,7 @@ public class LookupUtilTest {
 			e.printStackTrace();
 		}
 		this.util = new LookupUtil();
-		this.util.setBaseOkapEndpoint(props.getString("baseOkapEndpoint"));
+		this.util.setBaseOkapEndpoint((String) config.getProperty("baseOkapEndpoint"));
 		this.util.setApiService(apiService);
 	}
 	
