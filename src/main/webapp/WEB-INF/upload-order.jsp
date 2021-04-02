@@ -4,7 +4,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>Order upload Demo</title>
+	<title>Purchase Order Upload</title>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.1/css/bulma.min.css">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -69,10 +69,10 @@
 	</nav>
 	<div class="container">
 		<div class="field">
-			<label class="label">Upload Order:</label>
+			<label class="title">Marc To Purchase Order Upload</label>
 		</div>
 	</div>
-	<br>
+	<br />
 	<!--CONTENTS-->
 	
 	<div class="container">
@@ -103,18 +103,21 @@
 												</label>
 											</div>
 										</form>
-										<br>
-										<br>
+										<br />
+										<br />
 										<div class="buttons">
 											<button class="button is-primary" id="sendFile" name="sendFile" onclick="return sendRequest()">Send Request</button>
 										</div>
 										<!-- Environment variables -->
+										<!--
 										<div><p><b>Environment variables</b></p></div>
 										<div>baseOkapEndpoint: <% out.print(getServletContext().getAttribute("baseOkapEndpoint"));%></div>
 										<div>permELocation: <% out.print(getServletContext().getAttribute("permELocation"));%></div>
-										<!--  <div>permLocation: <% out.print(getServletContext().getAttribute("permLocation"));%></div> -->
+										 
+										<div>permLocation: <% out.print(getServletContext().getAttribute("permLocation"));%></div> 
 										<div>fiscalYearCode: <% out.print(getServletContext().getAttribute("fiscalYearCode"));%></div>
                                         <div>materialType: <% out.print(getServletContext().getAttribute("materialType"));%></div>
+                                        -->
 									</section>
 									
 								</div>
@@ -125,6 +128,7 @@
 					<div class="content">
 						<p class="title">Response<span style="color:#f5f5f5">6-29-20B</span></p>
 						<p class="subtitle"></p>
+						<div id="poNumber"></div>
 						<div id="logcontent" class="content" style="font-family: 'Special Elite', cursive;"></div>
 					</div>
 				</article>
@@ -139,6 +143,7 @@
 	<!-- END CONTENTS-->
 	<script src="https://code.jquery.com/jquery-3.2.1.js" integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE=" crossorigin="anonymous"></script>
 </body>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 	// Get all "navbar-burger" elements
@@ -159,14 +164,14 @@ document.addEventListener('DOMContentLoaded', function() {
 	}
 });
 </script>
+
 <script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
 <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.16/css/jquery.dataTables.css">
 <script type="text/javascript" charset="utf8" src="//cdn.datatables.net/1.10.16/js/jquery.dataTables.js"></script>
 
 <script>
 function sendRequest() {
-	$('#sendFile').addClass('is-loading');
-	
+	$('#sendFile').addClass('is-loading'); 
 	var getUrl = window.location;
 	var uploadUrl = getUrl .protocol + "//" + getUrl.host + "/" + getUrl.pathname.split('/')[1]+"/import/service/upload";    
     
@@ -181,13 +186,15 @@ function sendRequest() {
 		success: showOrderInfo,
 		error: updateFailed
 	});
+	 
 	e.preventDefault();
 	return false;
 } 
 
 function showOrderInfo(response) {
 	//DISPLAY UPDATED LOG
-	$('#sendFile').removeClass('is-loading');
+	$('#sendFile').removeClass('is-loading'); 
+	 
 	var source = document.getElementById("orderTemplate").innerHTML;
 	var template = Handlebars.compile(source);
 	var context = response;
@@ -203,12 +210,14 @@ function updateFailed(response) {
 
 <script src="js/handlebars-v4.0.2.js"></script>
 <script src="js/moment.js"></script>
+
 <script>
 Handlebars.registerHelper('formatTime', function(date, format) {
 	var mmnt = moment(date);
 	return mmnt.format(format);
 });
 </script>
+
 <script>
 let tabsWithContent = (function() {
 	let tabs = document.querySelectorAll('.tabs li');
@@ -246,17 +255,19 @@ function showname() {
 	document.getElementById('file-name').innerHTML = name.files.item(0).name;
 }
 </script>
+
 <script id="orderTemplate" type="text/x-handlebars-template"> 
-{{#each this}}
-	<br> <b>Created PO</b>: {{PONumber}}
-	<br> Title: {{title}}
-    <br> Location: {{location}}
-    <br> 001: {{theOne}}
-<br>
-     {{#if error}}
-	  <br> <b>ERROR:</b> {{error}} 
-     <hr>
-     <br>
+<p><b>Created Purchase Order Number</b>: {{this.0.poNumber}}</p>
+{{#each this}} 	
+	<br /> <b>Title</b>: {{title}}
+    <br /> <b>Location</b>: {{location}}
+    <br /> <b>OrderLineId</b>: {{id}}
+    <br /> <b>001</b>: {{theOne}}
+    <br />
+    {{#if error}}
+	 <br /> <b>ERROR:</b> {{error}} 
+     <hr />
+     <br />
     {{/if}}
 {{/each}}
 
