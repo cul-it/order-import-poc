@@ -48,7 +48,7 @@ public class LookupUtil {
 	}
 	
 	public void load() {
-		logger.info("set endpoints");
+		logger.trace("set endpoints");
 		setEndPoint("identifier-types", "1000");
 		setEndPoint("contributor-types", "1000");
 		setEndPoint("classification-types", "1000");
@@ -74,7 +74,7 @@ public class LookupUtil {
 		while (refTablesIterator.hasNext()) {
 			
 			String endpoint = refTablesIterator.next();
-			logger.info("calling "+ endpoint);
+			logger.trace("calling "+ endpoint);
 			String response = this.apiService.callApiGet(endpoint, token); 
 			 
 			JSONObject jsonObject = new JSONObject(response);
@@ -91,14 +91,17 @@ public class LookupUtil {
 				JSONObject element = (JSONObject) elementsIterator.next();
 				String id = element.getString("id");
 				String name = element.getString("name");
-				if (endpoint.contains("locations")) name = name + "-location";
+				if (endpoint.contains("locations")) {
+					String code = element.getString("code");
+					name = code + "-location";
+				}
 				//SAVING ALL OF THE 'NAMES' SO THE UUIDs CAN BE LOOKED UP
 				 
 				//logger.info("lookupTable name: "+ name);
 				table.put(name,id);		
 			}
 		}
-		logger.debug("finished loading lookup table");
+		logger.trace("finished loading lookup table");
 
 		return (HashMap<String, String>) table;
 	}
