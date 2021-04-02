@@ -11,7 +11,7 @@ tenant = CHANGE ME
 permELocation = serv\,remo
 fiscalYearCode = FY2021
 loanType = Can circulate
-textForElectronicResources = Avaialble to Snapshot Users
+textForElectronicResources = Available to Snapshot Users
 noteType = General note
 materialType = Book
 # You will probably want to change this
