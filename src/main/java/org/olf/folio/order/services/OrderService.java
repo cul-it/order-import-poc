@@ -22,7 +22,6 @@ import org.json.JSONObject;
 import org.olf.folio.order.Constants;
 import org.olf.folio.order.OrderImport;
 
-
 @Path ("/upload")
 public class OrderService {
 
@@ -44,8 +43,7 @@ public class OrderService {
 		String uploadedFileLocation = filePath + fileName.toString() + ".mrc";
 		// SAVE FILE TO DISK
 		writeFile(uploadedInputStream, uploadedFileLocation);
-		// PASS FILE INFO TO 'OrderImportShortened' WHICH MAKES THE FOLIO API CALLS
-		//OrderImportShortened testImport = new OrderImportShortened();
+		// PASS FILE INFO TO 'OrderImport' WHICH MAKES THE FOLIO API CALLS
 		OrderImport  testImport = new OrderImport();
 		testImport.setMyContext(servletRequest.getServletContext());
 		try {
