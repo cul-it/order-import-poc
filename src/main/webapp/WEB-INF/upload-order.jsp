@@ -69,7 +69,7 @@
 	</nav>
 	<div class="container">
 		<div class="field">
-			<label class="title">Marc To Purchase Order Upload</label>
+			<label class="title">Import MARC Purchase Order to FOLIO</label>
 		</div>
 	</div>
 	<br />
