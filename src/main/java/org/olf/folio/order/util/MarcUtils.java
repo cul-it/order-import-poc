@@ -27,7 +27,7 @@ public class MarcUtils {
 	
 	//private final String NOTE = "n"; // 980$n
 	private final String INTERNAL_NOTE = "z"; // 980$z
-	private final String RECEIVING_NOTE = "n"; // 980$n
+	private final String RECEIVING_NOTE = "n"; // 981$n
 	 
 	private final String PERSONNAME = "s"; // 980$s
 	private final String ELECTRONIC = "z"; // 980$z
@@ -134,10 +134,10 @@ public class MarcUtils {
 		return notes;
 	}
 	
-	public String getReceivingNote(DataField nineEighty ) {
+	public String getReceivingNote(DataField nineEightyOne ) {
 		String notes = new String();
-		if (nineEighty != null) {
-		    notes =  nineEighty.getSubfieldsAsString(RECEIVING_NOTE);
+		if (nineEightyOne != null) {
+		    notes =  nineEightyOne.getSubfieldsAsString(RECEIVING_NOTE);
 		}
 		return notes;
 	}
