@@ -168,8 +168,8 @@ public class OrderImport {
 				String vendorCode =  marcUtils.getVendorCode(nineEighty);
 				    
 				String quantity =  marcUtils.getQuantity(nineEighty);
-				Integer quanityNo = 0; //INIT
-			    if (quantity != null)  quanityNo = Integer.valueOf(quantity);
+				Integer quantityNo = 0; //INIT
+			    if (quantity != null)  quantityNo = Integer.valueOf(quantity);
 			    
 				String price = marcUtils.getPrice(nineEighty, nineEightyOne);
 				    
@@ -234,7 +234,7 @@ public class OrderImport {
 					orderLine.put("orderFormat", "Physical Resource");
 					cost.put("listUnitPrice", price);
 					cost.put("quantityPhysical", 1);
-					location.put("quantityPhysical",quanityNo);
+					location.put("quantityPhysical", quantityNo);
 					location.put("locationId", lookupTable.get(locationName + "-location"));
 					locations.put(location);
 				}
@@ -336,12 +336,13 @@ public class OrderImport {
 				
 				DataField twoFourFive = (DataField) record.getVariableField("245");
 				DataField nineEighty = (DataField) record.getVariableField("980");
+				DataField nineEightyOne = (DataField) record.getVariableField("981");
 			    DataField nineFiveTwo = (DataField) record.getVariableField("952"); 
 			    
 				String title = marcUtils.getTitle(twoFourFive);
 				responseMessage.put("title", title);
 				
-				String notes =  marcUtils.getInternalNotes(nineEighty);
+				String notes =  marcUtils.getInternalNotes(nineEightyOne);
 				String locationName = marcUtils.getLocation(nineFiveTwo);
 				
 				//INSERT THE NOTE IF THERE IS A NOTE IN THE MARC RECORD
@@ -589,8 +590,8 @@ public class OrderImport {
 				String price = marcUtils.getPrice(nineEighty, nineEightyOne);
 			    
 				String quantity =  marcUtils.getQuantity(nineEighty);
-				Integer quanityNo = 0;
-			    if (quantity != null)  quanityNo = Integer.valueOf(quantity);				
+				Integer quantityNo = 0;
+			    if (quantity != null)  quantityNo = Integer.valueOf(quantity);				
 			    
 				 
 			    Map<String, String> requiredFields = new HashMap<String, String>(); 
