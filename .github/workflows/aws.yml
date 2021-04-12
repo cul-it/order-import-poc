@@ -1,8 +1,7 @@
 on:
   push:
     branches:
-      # - main
-      - bugfix-actions-smarter-faster
+      - main
 
 name: Deploy to Amazon ECS
 
