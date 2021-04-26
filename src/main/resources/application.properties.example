@@ -2,7 +2,7 @@
 # okapi_username = diku_admin
 # okapi_password = admin
 # tenant = diku
-
+folioUrl = https://cornell-training.folio.ebsco.com
 baseOkapEndpoint = https://okapi-cornell-test.folio.ebsco.com/
 okapi_username = CHANGE ME
 okapi_password = CHANGE ME
