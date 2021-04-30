@@ -47,6 +47,10 @@ public class LookupUtil {
 		//
 	}
 	
+	public LookupUtil(String baseOkapEndpoint, ApiService apiService) { 
+		this.baseOkapEndpoint = baseOkapEndpoint;
+	}
+	
 	public void load() {
 		logger.trace("set endpoints");
 		setEndPoint("identifier-types", "1000");
