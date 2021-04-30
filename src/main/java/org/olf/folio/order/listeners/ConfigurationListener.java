@@ -19,13 +19,13 @@ public class ConfigurationListener implements ServletContextListener {
 			config.setListDelimiter('|');
 			String use_env = System.getenv("USE_SYSTEM_ENV");
 			if (StringUtils.isNotEmpty(use_env) && StringUtils.equals(use_env, "true")) {
+				config.setProperty("buildDir",  System.getenv("buildDir"));
 				config.setProperty("baseOkapEndpoint",  System.getenv("baseOkapEndpoint"));
 				config.setProperty("okapi_username", System.getenv("okapi_username"));
 				config.setProperty("okapi_password", System.getenv("okapi_password"));
 				config.setProperty("tenant", System.getenv("tenant"));
 		 
-				config.setProperty("permELocation", System.getenv("permELocation"));
-				//config.setProperty("permLocation", System.getenv("permLocation"));
+				config.setProperty("permELocation", System.getenv("permELocation")); 
 				config.setProperty("fiscalYearCode", System.getenv("fiscalYearCode"));
 				config.setProperty("loanType", System.getenv("loanType"));
 				config.setProperty("textForElectronicResources", System.getenv("textForElectronicResources"));

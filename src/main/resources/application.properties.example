@@ -16,3 +16,4 @@ noteType = General note
 materialType = Book
 # You will probably want to change this
 uploadFilePath = /tmp/
+buildDir=CHANGE ME
