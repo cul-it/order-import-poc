@@ -19,7 +19,7 @@ public class LookupUtilContributorTest extends LookupUtilBaseTest {
 	boolean debug = false;
 	 
 	public LookupUtilContributorTest() {
-		// TODO Auto-generated constructor stub
+		// 
 	}
 	
 	 

@@ -20,7 +20,7 @@ public class LookupUtilContributorNameTest extends LookupUtilBaseTest {
 	boolean debug = true; 
     
 	public LookupUtilContributorNameTest() {
-		// TODO Auto-generated constructor stub
+		// 
 	} 
 	
 	@Test

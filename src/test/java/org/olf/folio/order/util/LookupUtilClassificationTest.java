@@ -49,8 +49,7 @@ public class LookupUtilClassificationTest extends LookupUtilBaseTest {
 			fail(e.getMessage());
 		} catch (InterruptedException e) {
 			fail(e.getMessage());
-		} catch (Exception e) {
-			e.printStackTrace();
+		} catch (Exception e) { 
 			fail(e.getMessage());
 		} finally {
 			//fileOut.close();
