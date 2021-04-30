@@ -17,7 +17,6 @@ public class ApiBaseTest {
 	
 	private ApiService apiService;
 	
-
 	public String getApiUsername() {
 		return apiUsername;
 	}
