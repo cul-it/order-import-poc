@@ -35,6 +35,7 @@ Proof of concept workaround needed until FOLIO supports importing MARC records t
 This app requires a FOLIO user account with the following permissions granted:
 
 * `finance.budgets.collection.get`
+* `finance.fiscal-years.collection.get`
 * `finance.funds.collection.get`
 * `inventory-storage.classification-types.collection.get`
 * `inventory-storage.contributor-name-types.collection.get`
