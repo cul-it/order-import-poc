@@ -66,8 +66,10 @@ public class GetBudgetTest extends ApiBaseTest {
 		try { 
 		    String budgetResponse = getApiService().callApiGet(budgetEndpoint, getToken());
 		    JSONObject budgetsObject = new JSONObject(budgetResponse);
-		    assertNull(budgetsObject);
-		 	 
+		    assertNotNull(budgetsObject);
+		    int totalRecords = (Integer) budgetsObject.get("totalRecords");
+		    assertNotNull(totalRecords);
+		    assertEquals(totalRecords, 0); 
 		} catch (Exception e) {
 			fail(e.getMessage());
 		}
