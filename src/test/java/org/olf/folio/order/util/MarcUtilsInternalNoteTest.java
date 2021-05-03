@@ -1,6 +1,8 @@
 package org.olf.folio.order.util;
 
 import java.util.List;
+
+import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,9 +13,9 @@ import org.marc4j.marc.Record;
 
 public class MarcUtilsInternalNoteTest extends MarcUtilsBaseTest { 
 	 
-    boolean debug = true;
+    boolean debug = false;
     
-	@Test
+	@Ignore
 	public void testGetInternalNote() {
 		String fname = file6;
 		try {

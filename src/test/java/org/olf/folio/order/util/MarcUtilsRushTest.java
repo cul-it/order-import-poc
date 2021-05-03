@@ -11,7 +11,7 @@ import org.marc4j.marc.Record;
 
 public class MarcUtilsRushTest extends MarcUtilsBaseTest { 
 	
-	boolean debug = true;
+	boolean debug = false;
 
 	@Test
 	public void testGetRush() {

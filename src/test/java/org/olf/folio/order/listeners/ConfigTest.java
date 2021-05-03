@@ -12,13 +12,14 @@ import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Disabled; 
 
  
-public class MyTest {
+public class ConfigTest {
     
-	 
-	@Test
+	// change to @Test for debugging  
+	@Ignore
 	public void testConfig() { 
 		try { 
 			CompositeConfiguration config = new CompositeConfiguration();

@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 
 public class LookupUtilContributorNameTest extends LookupUtilBaseTest {
 	
-	boolean debug = true; 
+	boolean debug = false; 
     
 	public LookupUtilContributorNameTest() {
 		// 
