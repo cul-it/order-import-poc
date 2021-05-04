@@ -14,7 +14,7 @@
         "logDriver": "awslogs",
         "secretOptions": null,
         "options": {
-          "awslogs-group": "/ecs/folio-contrib-dev-oimp-poc",
+          "awslogs-group": "/ecs/folio-oimp-dev-oimp-poc",
           "awslogs-region": "us-east-1",
           "awslogs-stream-prefix": "ecs"
         }
@@ -65,7 +65,7 @@
   "placementConstraints": [],
   "memory": "512",
   "taskRoleArn": null,
-  "family": "folio-contrib-dev-oimp-poc-at",
+  "family": "folio-oimp-dev-oimp-poc-at",
   "pidMode": null,
   "requiresCompatibilities": [
     "FARGATE"
