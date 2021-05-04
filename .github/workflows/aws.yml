@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - ga-test-new-cluster
+      - main
 
 name: Deploy to Amazon ECS
 
