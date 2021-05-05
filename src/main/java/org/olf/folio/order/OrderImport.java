@@ -629,8 +629,6 @@ public class OrderImport {
 			    	logger.error(record.toString());
 			    	responseMessages.put(fundValidationResult);
 			    }
-			    return responseMessages;
-			    
 			}  catch(Exception e) {
 				e.printStackTrace();
 		    	logger.fatal(e.getMessage());
@@ -638,6 +636,7 @@ public class OrderImport {
 		    	responseMessage.put("error", e.getMessage());
 		    	responseMessage.put("PONumber", "~error~");
 		    	responseMessages.put(responseMessage);
+                        return responseMessages();
 		    }
 		}
 		return responseMessages;
