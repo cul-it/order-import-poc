@@ -50,6 +50,7 @@ public class OrderImport {
 
 		logger.debug("...starting...");
 		JSONArray responseMessages = new JSONArray();
+		JSONArray errorMessages = new JSONArray();
 		
 		//COLLECT VALUES FROM THE CONFIGURATION FILE
 		String baseOkapEndpoint = (String) getMyContext().getAttribute("baseOkapEndpoint");
@@ -81,17 +82,17 @@ public class OrderImport {
 		if (fileName != null) {
 			in = new FileInputStream(filePath + fileName);			
 		} else {
-			JSONObject responseMessage = new JSONObject();
-			responseMessage.put("error", "no input file provided");
-			responseMessage.put("PONumber", "~error~");
-			responseMessages.put(responseMessage);
-			return responseMessages;
+			JSONObject errorMessage = new JSONObject();
+			errorMessage.put("error", "no input file provided");
+			errorMessage.put("PONumber", "~error~");
+			errorMessages.put(errorMessage);
+			return errorMessages;
 		}
 		
 		//READ THE MARC RECORD FROM THE FILE AND VALIDATE IT
-		//VALIDATES THE FUND CODE, TAG (OBJECT CODE
-		MarcReader reader = new MarcStreamReader(in);
-	   
+		//VALIDATES THE FUND CODE and  VENDOR CODE DATA
+		// We don't want to continue if any of the marc records do not contain valid data
+		MarcReader reader = new MarcStreamReader(in);	   
 	    
 	   	JSONArray validateRequiredResult = validateRequiredValues(reader, token, baseOkapEndpoint);
 	   	if (!validateRequiredResult.isEmpty()) return validateRequiredResult;
@@ -111,7 +112,7 @@ public class OrderImport {
 			 logger.debug("got lookup table from context");
 		}		 
 		
-		//READ THE MARC RECORD FROM THE FILE
+		// READ THE MARC RECORD FROM THE FILE
 		in = new FileInputStream(filePath + fileName);
 		reader = new MarcStreamReader(in);
 		
@@ -293,11 +294,11 @@ public class OrderImport {
 			
 			} catch(Exception e) {
 				logger.error(e.toString());
-				JSONObject responseMessage = new JSONObject();
-				responseMessage.put("error",e.toString());
-				responseMessage.put("PONumber", poNumber);
-				responseMessages.put(responseMessage);
-				return responseMessages;
+				JSONObject errorMessage = new JSONObject();
+				errorMessage.put("error",e.toString());
+				errorMessage.put("PONumber", poNumber);
+				errorMessages.put(errorMessage);
+				return errorMessages;
 			}
 			numRec++;
 		} 
@@ -529,11 +530,11 @@ public class OrderImport {
 			} catch(Exception e) {
 				e.printStackTrace();
 				logger.error(e.toString());
-				JSONObject responseMessage = new JSONObject();
-				responseMessage.put("error",e.toString());
-				responseMessage.put("PONumber", poNumberObj.get("poNumber"));
-				responseMessages.put(responseMessage);
-				return responseMessages;
+				JSONObject errorMessage = new JSONObject();
+				errorMessage.put("error",e.toString());
+				errorMessage.put("PONumber", poNumberObj.get("poNumber"));
+				errorMessages.put(errorMessage);
+				return errorMessages;
 			}
 		}
 
@@ -543,10 +544,13 @@ public class OrderImport {
 
 	}
 	
+	
+	// this method validates required values and will return a JSONArray with error messages or an empty array if it passes
+	
 	public JSONArray validateRequiredValues(MarcReader reader,String token, String baseOkapEndpoint ) {
 		
 	    Record record = null;
-	    JSONArray responseMessages = new JSONArray();
+	    JSONArray errorMessages = new JSONArray();
 		while(reader.hasNext()) {
 			try {
 		    	record = reader.next();    					    
@@ -557,31 +561,31 @@ public class OrderImport {
 			    DataField nineFiveTwo = (DataField) record.getVariableField("952");
 			    
 			    if (twoFourFive == null) {
-					JSONObject responseMessage = new JSONObject();
-					responseMessage.put("error", "Record is missing the 245 field");
-					responseMessage.put("PONumber", "~error~");
-					responseMessage.put("title", "~error~");
-					responseMessages.put(responseMessage);
+					JSONObject errorMessage = new JSONObject();
+					errorMessage.put("error", "Record is missing the 245 field");
+					errorMessage.put("PONumber", "~error~");
+					errorMessage.put("title", "~error~");
+					errorMessages.put(errorMessage);
 					continue;
 				}
 			    
 			    String title = marcUtils.getTitle(twoFourFive); 
 			    
 				if (nineEighty == null) {
-					JSONObject responseMessage = new JSONObject();
-					responseMessage.put("error", "Record is missing the 980 field");
-					responseMessage.put("PONumber", "~error~");
-					responseMessage.put("title", title);
-					responseMessages.put(responseMessage);
+					JSONObject errorMessage = new JSONObject();
+					errorMessage.put("error", "Record is missing the 980 field");
+					errorMessage.put("PONumber", "~error~");
+					errorMessage.put("title", title);
+					errorMessages.put(errorMessage);
 					continue;
 				}
 				
 				//if (nineFiveTwo == null) {
-				//	JSONObject responseMessage = new JSONObject();
-				//	responseMessage.put("error", "Record is missing the 952 field");
-				//	responseMessage.put("PONumber", "~error~");
-				//	responseMessage.put("title", title);
-				//	responseMessages.put(responseMessage);
+				//	JSONObject errorMessage = new JSONObject();
+				//	errorMessage.put("error", "Record is missing the 952 field");
+				//	errorMessage.put("PONumber", "~error~");
+				//	errorMessage.put("title", title);
+				//	errorMessages.put(errorMessage);
 				//	continue;
 				//}
 				
@@ -602,16 +606,17 @@ public class OrderImport {
 			    // MAKE SURE EACH OF THE REQUIRED SUBFIELDS HAS DATA
 		        for (Map.Entry<String,String> entry : requiredFields.entrySet())  {
 		        	if (entry.getValue()==null) {
-		        		JSONObject responseMessage = new JSONObject();
-		        		responseMessage.put("title", title);
-		        		//responseMessage.put("theOne", theOne);
-					    responseMessage.put("error", entry.getKey() + " Missing");
-						responseMessage.put("PONumber", "~error~");
-						responseMessages.put(responseMessage);
+		        		JSONObject errorMessage = new JSONObject();
+		        		errorMessage.put("title", title);
+		        		//errorMessage.put("theOne", theOne);
+					    errorMessage.put("error", entry.getKey() + " Missing");
+						errorMessage.put("PONumber", "~error~");
+						errorMessages.put(errorMessage);
 		        	}
 		        }
 		        
-		        if (!responseMessages.isEmpty()) return responseMessages;
+		        // return errorMessages if we found any so far...
+		        if (!errorMessages.isEmpty()) return errorMessages;
 		        
 		        
 			    //VALIDATE THE ORGANIZATION,  AND FUND
@@ -620,27 +625,26 @@ public class OrderImport {
 			    if (orgValidationResult != null) {
 			    	logger.error("organization invalid: "+ vendorCode);
 			    	logger.error(record.toString());
-			    	responseMessages.put(orgValidationResult);				    
+			    	errorMessages.put(orgValidationResult);				    
 			    }
 			    				    
 			    JSONObject fundValidationResult = validateFund(fundCode, title, token, baseOkapEndpoint, price);
 			    if (fundValidationResult != null) {
 			    	logger.error("fundCode invalid: "+ fundCode + " (price: "+ price +")");
 			    	logger.error(record.toString());
-			    	responseMessages.put(fundValidationResult);
+			    	errorMessages.put(fundValidationResult);
 			    }
-			    return responseMessages;
-			    
 			}  catch(Exception e) {
 				e.printStackTrace();
 		    	logger.fatal(e.getMessage());
-		    	JSONObject responseMessage = new JSONObject();
-		    	responseMessage.put("error", e.getMessage());
-		    	responseMessage.put("PONumber", "~error~");
-		    	responseMessages.put(responseMessage);
+		    	JSONObject errorMessage = new JSONObject();
+		    	errorMessage.put("error", e.getMessage());
+		    	errorMessage.put("PONumber", "~error~");
+		    	errorMessages.put(errorMessage);
+                return errorMessages;
 		    }
 		}
-		return responseMessages;
+		return new JSONArray();
 		
 	}
 	
@@ -798,15 +802,15 @@ public class OrderImport {
 		String fiscalYearCode =  (String) getMyContext().getAttribute("fiscalYearCode");
 		String fundEndpoint = baseOkapiEndpoint + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
 		
-		JSONObject responseMessage = new JSONObject();
+		JSONObject errorMessage = new JSONObject();
 		
 		String fundResponse = apiService.callApiGet(fundEndpoint, token);
 		JSONObject fundsObject = new JSONObject(fundResponse);
 		//----------->VALIDATION #1: MAKE SURE THE FUND CODE EXISTS
 		if (fundsObject.getJSONArray("funds").length() < 1) {
-			responseMessage.put("error", "Fund code in file (" + fundCode + ") does not exist in FOLIO");
-			responseMessage.put("PONumber", "~error~");
-			return responseMessage;
+			errorMessage.put("error", "Fund code in file (" + fundCode + ") does not exist in FOLIO");
+			errorMessage.put("PONumber", "~error~");
+			return errorMessage;
 		}
 		String fundId = (String) fundsObject.getJSONArray("funds").getJSONObject(0).get("id");
 		logger.debug("FUNDS: " + fundsObject.get("funds"));
@@ -816,10 +820,10 @@ public class OrderImport {
 		String fundBalanceResponse = apiService.callApiGet(fundBalanceQuery, token);
 		JSONObject fundBalanceObject = new JSONObject(fundBalanceResponse);
 		if (fundBalanceObject.getJSONArray("budgets").length() < 1) {
-			responseMessage.put("error", "Fund code in file (" + fundCode + ") does not have a budget");
-			responseMessage.put("title", title);
-			responseMessage.put("PONumber", "~error~");
-			return responseMessage;
+			errorMessage.put("error", "Fund code in file (" + fundCode + ") does not have a budget");
+			errorMessage.put("title", title);
+			errorMessage.put("PONumber", "~error~");
+			return errorMessage;
 		}
 		return null;
 	}
@@ -827,7 +831,7 @@ public class OrderImport {
 	
 	
 	public JSONObject validateOrganization(String orgCode, String title,  String token, String baseOkapiEndpoint ) throws IOException, InterruptedException, Exception {
-		JSONObject responseMessage = new JSONObject();
+		JSONObject errorMessage = new JSONObject();
 	    //LOOK UP THE ORGANIZATION
 	    String organizationEndpoint = baseOkapiEndpoint + "organizations-storage/organizations?limit=30&offset=0&query=((code='" + orgCode + "'))";
 	    String orgLookupResponse = apiService.callApiGet(organizationEndpoint,  token);
@@ -835,10 +839,10 @@ public class OrderImport {
 		//---------->VALIDATION: MAKE SURE THE ORGANIZATION CODE EXISTS
 		if (orgObject.getJSONArray("organizations").length() < 1) {
 			logger.error(orgObject.toString(3));
-			responseMessage.put("error", "Organization code in file (" + orgCode + ") does not exist in FOLIO");
-			responseMessage.put("title", title);
-			responseMessage.put("PONumber", "~error~");
-			return responseMessage;
+			errorMessage.put("error", "Organization code in file (" + orgCode + ") does not exist in FOLIO");
+			errorMessage.put("title", title);
+			errorMessage.put("PONumber", "~error~");
+			return errorMessage;
 		}
 		return null;
 	}
