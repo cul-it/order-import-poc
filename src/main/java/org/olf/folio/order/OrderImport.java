@@ -644,7 +644,7 @@ public class OrderImport {
 		    	return errorMessages;
 		    }
 		}
-		return new JSONArray();
+		return errorMessages;
 		
 	}
 	
