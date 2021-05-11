@@ -17,6 +17,7 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<junit-jupiter.version>5.4.0</junit-jupiter.version>
 		<p.type>war</p.type>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 	<packaging>${p.type}</packaging>
 
