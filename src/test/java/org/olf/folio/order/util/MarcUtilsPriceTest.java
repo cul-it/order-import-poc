@@ -15,7 +15,7 @@ public class MarcUtilsPriceTest extends MarcUtilsBaseTest {
 
 	@Test
 	public void testGetPrice() {
-		String fname = file4; 
+		String fname = amazonFO; 
 		try {
 			List<Record> records = getRecords(fname);
 			for (Record record: records) {

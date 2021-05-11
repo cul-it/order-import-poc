@@ -14,7 +14,7 @@ public class MarcUtilsQuantityTest extends MarcUtilsBaseTest {
 
 	@Test
 	public void testGetElectronic() {
-		String fname = file2;
+		String fname = casalini;
 		try {
 			List<Record> records = getRecords(fname);
 			for (Record record: records) {

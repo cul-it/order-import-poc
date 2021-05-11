@@ -5,17 +5,16 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-
 import org.marc4j.marc.DataField;
 import org.marc4j.marc.Record;
 
 public class MarcUtilsElectronicTest extends MarcUtilsBaseTest { 
 	 
-    boolean debug = false;
+    boolean debug = true;
     
 	@Test
 	public void testGetElectronic() {
-		String fname = file2; 
+		String fname = amazonFO; 
 		try {
 			List<Record> records = getRecords(fname);
 			for (Record record: records) {

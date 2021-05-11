@@ -15,7 +15,7 @@ public class MarcUtilsSelectorTest extends MarcUtilsBaseTest {
     
 	@Test
 	public void testGetSelector() {
-		String fname = file2;
+		String fname = casalini;
 		try {
 			List<Record> records = getRecords(fname);
 			for (Record record: records) {

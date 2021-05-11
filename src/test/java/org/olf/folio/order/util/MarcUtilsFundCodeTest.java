@@ -15,7 +15,7 @@ public class MarcUtilsFundCodeTest extends MarcUtilsBaseTest {
 
 	@Test
 	public void testGetFundCode() {
-		String fname = file1; 
+		String fname = harrass; 
 		try {
 			List<Record> records = getRecords(fname);
 			for (Record record: records) {

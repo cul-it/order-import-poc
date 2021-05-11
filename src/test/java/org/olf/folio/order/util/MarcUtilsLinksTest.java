@@ -19,7 +19,7 @@ public class MarcUtilsLinksTest extends MarcUtilsBaseTest {
 
 	@Test
 	public void testGetLinks() {
-		String fname = file7;
+		String fname = requestors;
 		try {
 			List<Record> records = getRecords(fname);
 			for (Record record: records) {

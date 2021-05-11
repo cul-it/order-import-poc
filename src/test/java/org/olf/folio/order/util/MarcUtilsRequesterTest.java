@@ -14,7 +14,7 @@ public class MarcUtilsRequesterTest extends MarcUtilsBaseTest {
 
 	@Test
 	public void testGetRequester() {
-		String fname = file7;
+		String fname = requestors;
 		try {
 			List<Record> records = getRecords(fname);
 			for (Record record: records) {

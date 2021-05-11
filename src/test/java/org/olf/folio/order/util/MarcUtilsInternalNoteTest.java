@@ -18,7 +18,7 @@ public class MarcUtilsInternalNoteTest extends MarcUtilsBaseTest {
     // ignore test until it's determined what to do with notes
 	@Ignore
 	public void testGetInternalNote() {
-		String fname = file6;
+		String fname = coutts;
 		try {
 			List<Record> records = getRecords(fname);
 			for (Record record: records) {

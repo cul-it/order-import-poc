@@ -15,7 +15,7 @@ public class MarcUtilsTitleTest extends MarcUtilsBaseTest {
     
 	@Test
 	public void testGetTitle() {
-		String fname = file3;
+		String fname = physical;
 		try {
 			List<Record> records = getRecords(fname);
 			for (Record record: records) {
