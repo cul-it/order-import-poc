@@ -90,19 +90,20 @@ public class ApiBaseTest {
 			config.setProperty("materialType", System.getenv("materialType"));
 		 	
 		} else { 
-		   try {
-			   props.load(ClassLoader.getSystemResourceAsStream("application.properties"));
-			   this.apiUsername = (String) props.getProperty("okapi_username");
-			   this.apiPassword = (String) props.getProperty("okapi_password");
-			   this.tenant = (String) props.getProperty("tenant");
-			   this.baseOkapEndpoint = (String) props.getProperty("baseOkapEndpoint");
-		   } catch (ConfigurationException e) { 
-		      throw new RuntimeException("Could not load application.properties file");
-		   }
-		   config.addConfiguration(props);
-		} 
- 
-       this.setApiService(new ApiService(this.tenant));
+			try {
+				props.load(ClassLoader.getSystemResourceAsStream("application.properties"));
+			} catch (ConfigurationException e) { 
+				throw new RuntimeException("Could not load application.properties file");
+			}
+			config.addConfiguration(props);
+		}
+
+		this.apiUsername = (String) config.getProperty("okapi_username");
+		this.apiPassword = (String) config.getProperty("okapi_password");
+		this.tenant = (String) config.getProperty("tenant");
+		this.baseOkapEndpoint = (String) config.getProperty("baseOkapEndpoint");
+
+		this.setApiService(new ApiService(this.tenant));
 		
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("username", this.apiUsername);

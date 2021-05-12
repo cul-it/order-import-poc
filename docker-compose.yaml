@@ -3,6 +3,13 @@ services:
   order-import-poc:
     build:
       context: .
+      args:
+        - USE_SYSTEM_ENV=${USE_SYSTEM_ENV}
+        - buildDir=${buildDir}
+        - baseOkapEndpoint=${baseOkapEndpoint}
+        - okapi_username=${okapi_username}
+        - okapi_password=${okapi_password}
+        - tenant=${tenant}
     environment:
       - USE_SYSTEM_ENV=true
       - baseOkapEndpoint=${baseOkapEndpoint}

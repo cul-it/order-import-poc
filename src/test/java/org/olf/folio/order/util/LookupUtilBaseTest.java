@@ -12,15 +12,14 @@ import org.olf.folio.order.services.ApiService;
 public class LookupUtilBaseTest {
 	
 	
-    private LookupUtil util;
-    private String apiUsername;
+	private LookupUtil util;
+	private String apiUsername;
 	private String apiPassword;
 	private String tenant;
 	private String baseOkapEndpoint;
-    private String token; 
-    private ApiService apiService;
-    
-    	
+	private String token; 
+	private ApiService apiService;
+
 	public LookupUtil getUtil() {
 		return util;
 	}
@@ -85,10 +84,10 @@ public class LookupUtilBaseTest {
 		
 	} 
 	
-    public void init() {
-    	CompositeConfiguration config = new CompositeConfiguration();
-    	PropertiesConfiguration props = new PropertiesConfiguration();
-    	
+	public void init() {
+		CompositeConfiguration config = new CompositeConfiguration();
+		PropertiesConfiguration props = new PropertiesConfiguration();
+			
 		String use_env = System.getenv("USE_SYSTEM_ENV");
 		if (StringUtils.isNotEmpty(use_env) && StringUtils.equals(use_env, "true")) {
 			config.setProperty("baseOkapEndpoint",  System.getenv("baseOkapEndpoint"));
@@ -105,19 +104,20 @@ public class LookupUtilBaseTest {
 			config.setProperty("materialType", System.getenv("materialType"));
 		 	
 		} else { 
-		   try {
-			   props.load(ClassLoader.getSystemResourceAsStream("application.properties"));
-			   this.apiUsername = (String) props.getProperty("okapi_username");
-			   this.apiPassword = (String) props.getProperty("okapi_password");
-			   this.tenant = (String) props.getProperty("tenant");
-			   this.baseOkapEndpoint = (String) props.getProperty("baseOkapEndpoint");
-		   } catch (ConfigurationException e) { 
-		      throw new RuntimeException("Could not load application.properties file");
-		   }
-		   config.addConfiguration(props);
+			 try {
+				 props.load(ClassLoader.getSystemResourceAsStream("application.properties"));
+			 } catch (ConfigurationException e) { 
+					throw new RuntimeException("Could not load application.properties file");
+			 }
+			 config.addConfiguration(props);
 		}
- 
-        this.setApiService(new ApiService(this.tenant));
+		
+		this.apiUsername = (String) config.getProperty("okapi_username");
+		this.apiPassword = (String) config.getProperty("okapi_password");
+		this.tenant = (String) config.getProperty("tenant");
+		this.baseOkapEndpoint = (String) config.getProperty("baseOkapEndpoint");
+
+		this.setApiService(new ApiService(this.tenant));
 		
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("username", this.apiUsername);
