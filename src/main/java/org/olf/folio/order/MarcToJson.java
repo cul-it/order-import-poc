@@ -319,12 +319,14 @@ public class MarcToJson {
                 //System.out.println("Title: "+ title);
                 responseMessage.put("title", title);
                 
-                String fundCode = marcUtils.getFundCode(nineEighty);
-                String vendorCode =  marcUtils.getVendorCode(nineEighty);
+                final String fundCode = marcUtils.getFundCode(nineEighty);
+                final String vendorCode =  marcUtils.getVendorCode(nineEighty);
                     
                 String quantity =  marcUtils.getQuantity(nineEighty);
                 Integer quantityNo = 0; //INIT
-                if (quantity != null)  quantityNo = Integer.valueOf(quantity);
+                if (quantity != null)  { 
+                    quantityNo = Integer.valueOf(quantity);
+                }
                 
                 String price = marcUtils.getPrice(nineEighty, nineEightyOne);
                     
@@ -332,16 +334,16 @@ public class MarcToJson {
                 if (StringUtils.isNotEmpty(electronicIndicator)) {
                     electronic = true;
                 }
-                String vendorItemId = marcUtils.getVendorItemId(nineEighty);
-                String selector = marcUtils.getSelector(nineEighty);
-                String personName = marcUtils.getPersonName(nineEighty);
+                final String vendorItemId = marcUtils.getVendorItemId(nineEighty);
+                final String selector = marcUtils.getSelector(nineEighty);
+                //String personName = marcUtils.getPersonName(nineEighty);
                 
 
                 DataField nineFiveTwo = (DataField) record.getVariableField("952");
                 String locationName = marcUtils.getLocation(nineFiveTwo);
                 responseMessage.put("location", locationName + " (" + lookupTable.get(locationName + "-location") + ")");
-                String requester = marcUtils.getRequester(nineEightyOne);
-                String rush = marcUtils.getRush(nineEightyOne);
+                final String requester = marcUtils.getRequester(nineEightyOne);
+                final String rush = marcUtils.getRush(nineEightyOne);
                  
                 //LOOK UP VENDOR
                 //System.out.println("lookupVendor");
@@ -352,8 +354,8 @@ public class MarcToJson {
                 
                 //LOOK UP THE FUND
                 //System.out.println("lookup Fund");
-                String fundEndpoint = this.getEndpoint() + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
-                String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
+                final String fundEndpoint = this.getEndpoint() + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
+                final String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
                                 
                 
                 // CREATING THE PURCHASE ORDER                
