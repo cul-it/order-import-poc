@@ -252,26 +252,12 @@ public class MarcToJson {
      * @return
      * @throws Exception
      */
-    public JSONArray run() throws Exception {        
-         
-        //"/cul/data/test-mrc/building_bridges.mrc",
-        //"/cul/data/test-mrc/gobi-sample-v2.mrc",
-        //"/cul/data/test-mrc/physical.mrc",
-        // "/cul/data/test-mrc/requesters_5-records_2021-03-11.mrc",
-        //"/cul/data/test-mrc/harrassowitz_9-records_2021-03-10.mrc",
-        //"/cul/data/test-mrc/AmazonFO.1.mrc",
-        //"/cul/data/test-mrc/CouttsUKFO.1.mrc",
-        //"/cul/data/test-mrc/MIDWEST.1.mrc",
-        //"/cul/data/test-mrc/save-for-masayo.mrc",
-        //"/cul/data/test-mrc/singleharrass.mrc",
-        
+    public JSONArray run() throws Exception {  
  
         String materialTypeName = "Book";
         JSONArray responseMessages = new JSONArray();        
         
-        // GENERATE UUID for the PO
-           
-        
+        // GENERATE UUID for the PO 
         
         //GET THE NEXT PO NUMBER
         // harcode the ponumber just so we have one  
@@ -302,8 +288,7 @@ public class MarcToJson {
         
         Record record = null;
         logger.debug("reading marc file");
-        int numRec = 0;
-        boolean electronic = false;
+        int numRec = 0; 
         
         while (reader.hasNext()) {
             try {
@@ -328,16 +313,11 @@ public class MarcToJson {
                     quantityNo = Integer.valueOf(quantity);
                 }
                 
-                String price = marcUtils.getPrice(nineEighty, nineEightyOne);
-                    
-                String electronicIndicator = marcUtils.getElectronicIndicator(nineEighty);
-                if (StringUtils.isNotEmpty(electronicIndicator)) {
-                    electronic = true;
-                }
+                String price = marcUtils.getPrice(nineEighty, nineEightyOne); 
+                
                 final String vendorItemId = marcUtils.getVendorItemId(nineEighty);
                 final String selector = marcUtils.getSelector(nineEighty);
-                //String personName = marcUtils.getPersonName(nineEighty);
-                
+                //String personName = marcUtils.getPersonName(nineEighty);                
 
                 DataField nineFiveTwo = (DataField) record.getVariableField("952");
                 String locationName = marcUtils.getLocation(nineFiveTwo);
@@ -369,34 +349,19 @@ public class MarcToJson {
                 JSONObject location = new JSONObject();
                 JSONArray locations = new JSONArray(); 
                 
-                if (electronic) {
-                    logger.trace("electronic=true");
-                    orderLine.put("orderFormat", "Electronic Resource");
-                    JSONObject eResource = new JSONObject();
-                    eResource.put("activated", false);
-                    eResource.put("createInventory", "Instance, Holding");
-                    eResource.put("trial", false);
-                    eResource.put("accessProvider", vendorId);
-                    orderLine.put("eresource", eResource);
-                    orderLine.put("orderFormat", "Electronic Resource");
-                    cost.put("quantityElectronic", 1);
-                    cost.put("listUnitPriceElectronic", price);
-                    location.put("quantityElectronic", 1);
-                    location.put("locationId", lookupTable.get(locationName + "-location"));
-                    locations.put(location);
-                } else {
-                    logger.trace("electronic=false");
-                    JSONObject physical = new JSONObject();
-                    physical.put("createInventory", "Instance, Holding, Item");
-                    physical.put("materialType", lookupTable.get(materialTypeName));
-                    orderLine.put("physical", physical);
-                    orderLine.put("orderFormat", "Physical Resource");
-                    cost.put("listUnitPrice", price);
-                    cost.put("quantityPhysical", 1);
-                    location.put("quantityPhysical", quantityNo);
-                    location.put("locationId", lookupTable.get(locationName + "-location"));
-                    locations.put(location);
-                }
+
+                logger.trace("electronic=false");
+                JSONObject physical = new JSONObject();
+                physical.put("createInventory", "Instance, Holding, Item");
+                physical.put("materialType", lookupTable.get(materialTypeName));
+                orderLine.put("physical", physical);
+                orderLine.put("orderFormat", "Physical Resource");
+                cost.put("listUnitPrice", price);
+                cost.put("quantityPhysical", 1);
+                location.put("quantityPhysical", quantityNo);
+                location.put("locationId", lookupTable.get(locationName + "-location"));
+                locations.put(location);
+                 
                 
                 //VENDOR REFERENCE NUMBER IF INCLUDED IN THE MARC RECORD:
                 if (vendorItemId != null) {

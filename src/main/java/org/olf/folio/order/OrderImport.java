@@ -150,8 +150,7 @@ public class OrderImport {
 		// iterator over records in the marc file.
 	    Record record = null;
 		logger.debug("reading marc file");
-		int numRec = 0;
-		boolean electronic = false;
+		int numRec = 0; 
 		
 		while (reader.hasNext()) {
 			try {
@@ -172,12 +171,7 @@ public class OrderImport {
 				Integer quantityNo = 0; //INIT
 			    if (quantity != null)  quantityNo = Integer.valueOf(quantity);
 			    
-				String price = marcUtils.getPrice(nineEighty, nineEightyOne);
-				    
-				String electronicIndicator = marcUtils.getElectronicIndicator(nineEighty);
-				if (StringUtils.isNotEmpty(electronicIndicator)) {
-					electronic = true;
-				}
+				String price = marcUtils.getPrice(nineEighty, nineEightyOne); 
 				String vendorItemId = marcUtils.getVendorItemId(nineEighty);
 				String selector = marcUtils.getSelector(nineEighty);
 				String personName = marcUtils.getPersonName(nineEighty);
@@ -211,34 +205,18 @@ public class OrderImport {
 				JSONObject location = new JSONObject();
 				JSONArray locations = new JSONArray(); 
 				
-				if (electronic) {
-					logger.trace("electronic=true");
-					orderLine.put("orderFormat", "Electronic Resource");
-					JSONObject eResource = new JSONObject();
-					eResource.put("activated", false);
-					eResource.put("createInventory", "Instance, Holding");
-					eResource.put("trial", false);
-					eResource.put("accessProvider", vendorId);
-					orderLine.put("eresource",eResource);
-					orderLine.put("orderFormat", "Electronic Resource");
-					cost.put("quantityElectronic", 1);
-					cost.put("listUnitPriceElectronic", price);
-					location.put("quantityElectronic", 1);
-					location.put("locationId", lookupTable.get(locationName + "-location"));
-					locations.put(location);
-				} else {
-					logger.trace("electronic=false");
-					JSONObject physical = new JSONObject();
-					physical.put("createInventory", "Instance, Holding, Item");
-					physical.put("materialType", lookupTable.get(materialTypeName));
-					orderLine.put("physical", physical);
-					orderLine.put("orderFormat", "Physical Resource");
-					cost.put("listUnitPrice", price);
-					cost.put("quantityPhysical", 1);
-					location.put("quantityPhysical", quantityNo);
-					location.put("locationId", lookupTable.get(locationName + "-location"));
-					locations.put(location);
-				}
+				// all items are assumed to be physical
+				JSONObject physical = new JSONObject();
+				physical.put("createInventory", "Instance, Holding, Item");
+				physical.put("materialType", lookupTable.get(materialTypeName));
+				orderLine.put("physical", physical);
+				orderLine.put("orderFormat", "Physical Resource");
+				cost.put("listUnitPrice", price);
+				cost.put("quantityPhysical", 1);
+				location.put("quantityPhysical", quantityNo);
+				location.put("locationId", lookupTable.get(locationName + "-location"));
+				locations.put(location);
+				 
 				
 				//VENDOR REFERENCE NUMBER IF INCLUDED IN THE MARC RECORD:
 				if (vendorItemId != null) {
@@ -478,46 +456,44 @@ public class OrderImport {
 				JSONObject holdingsAsJson = new JSONObject(holdingResponse);
 				JSONObject holdingRecord = holdingsAsJson.getJSONArray("holdingsRecords").getJSONObject(0);
 				
-				JSONArray eResources = new JSONArray();
-				String linkText = (String) getMyContext().getAttribute("textForElectronicResources");
+				// TODO: Do we need to include 856 fields now?
+				//JSONArray eResources = new JSONArray();
+				//String linkText = (String) getMyContext().getAttribute("textForElectronicResources");
 				
 				// TODO: clean this up...
-				logger.debug("Add 856 fields");
-				List urls =  record.getVariableFields("856");
-				Iterator<DataField> iterator = urls.iterator();
-				while (iterator.hasNext()) {
-					DataField dataField = (DataField) iterator.next();
-					if (dataField != null && dataField.getSubfield('u') != null) {
-						String url = dataField.getSubfield('u').getData();
-						if (dataField.getSubfield('z') != null) {
-							linkText = dataField.getSubfield('z').getData();
-						}
-						JSONObject eResource = new JSONObject();
-						eResource.put("uri", dataField.getSubfield('u').getData());
-						//TODO - DO WE WANT TO CHANGE THE LINK TEXT?
-						eResource.put("linkText", linkText);
+				//logger.debug("Add 856 fields");
+				//List urls =  record.getVariableFields("856");
+				//Iterator<DataField> iterator = urls.iterator();
+				//while (iterator.hasNext()) {
+				//	DataField dataField = (DataField) iterator.next();
+				//	if (dataField != null && dataField.getSubfield('u') != null) {
+				//		String url = dataField.getSubfield('u').getData();
+				//		if (dataField.getSubfield('z') != null) {
+				//			linkText = dataField.getSubfield('z').getData();
+				//		}
+				//		JSONObject eResource = new JSONObject();
+				//		eResource.put("uri", dataField.getSubfield('u').getData());
+				//		//TODO - DO WE WANT TO CHANGE THE LINK TEXT?
+				//		eResource.put("linkText", linkText);
 						//I 'THINK' THESE RELATIONSHIP TYPES ARE HARDCODED INTO FOLIO
 						//CANT BE LOOKED UP WITH AN API?
 						//https://github.com/folio-org/mod-inventory-storage/blob/master/reference-data/electronic-access-relationships/resource.json
-						eResource.put("relationshipId", "f5d0068e-6272-458e-8a81-b85e7b9a14aa");
-						eResources.put(eResource);
-					}
-				}
+				//		eResource.put("relationshipId", "f5d0068e-6272-458e-8a81-b85e7b9a14aa");
+				//		eResources.put(eResource);
+				//	}
+				//}
 				
 				//UPDATE THE INSTANCE RECORD
 				logger.debug("Update Instance Record");
-				instanceAsJson.put("electronicAccess", eResources);
+				//instanceAsJson.put("electronicAccess", eResources);
 				instanceAsJson.put("natureOfContentTermIds", new JSONArray());
 				instanceAsJson.put("precedingTitles", new JSONArray());
 				instanceAsJson.put("succeedingTitles", new JSONArray());
 				String instanceUpdateResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/instances/" + instanceId,  instanceAsJson, token);
 				
 				//UPDATE THE HOLDINGS RECORD
-				holdingRecord.put("electronicAccess", eResources);
-				//IF THIS WAS AN ELECTRONIC RECORD, MARK THE HOLDING AS EHOLDING
-				if (electronic) {
-					holdingRecord.put("holdingsTypeId",this.lookupTable.get("Electronic"));
-				}
+				//holdingRecord.put("electronicAccess", eResources);
+		
 				logger.debug("Update holdings record");
 				String createHoldingsResponse = apiService.callApiPut(baseOkapEndpoint + "holdings-storage/holdings/" + holdingRecord.getString("id"), holdingRecord,token);
 				
