@@ -173,7 +173,7 @@ public class MarcToJson {
         try {
             app.init();
             JSONArray responseMessages  = app.run();
-            // System.out.println(responseMessages.toString(3));
+            System.out.println(responseMessages.toString(3));
             
         } catch (Exception e) {
             // TODO Auto-generated catch block
@@ -226,13 +226,13 @@ public class MarcToJson {
             throw new RuntimeException(e);
         }
         
+        getConfig().addConfiguration(props);
         JSONArray envErrors = validateEnvironment();
         if (envErrors != null) {
             System.out.println(envErrors.toString(3));
             System.exit(1);
         }
         
-        getConfig().addConfiguration(props); 
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("username", getConfig().getProperty("okapi_username"));
         jsonObject.put("password", getConfig().getProperty("okapi_password"));
@@ -274,7 +274,7 @@ public class MarcToJson {
  
         String materialTypeName = "Book";
         JSONArray responseMessages = new JSONArray();        
-        
+        JSONArray errorMessages = new JSONArray();
         // GENERATE UUID for the PO 
        
         //GET THE NEXT PO NUMBER
@@ -283,15 +283,14 @@ public class MarcToJson {
         poNumberObj.put("poNumber", DEFAULTPONUM);
         logger.debug("NEXT PO NUMBER: " + poNumberObj.get("poNumber"));
         
-        responseMessages.put(poNumberObj);
+        //responseMessages.put(poNumberObj);
         
         // CREATING THE PURCHASE ORDER
         JSONObject order = new JSONObject();
         UUID orderUUID = UUID.randomUUID();        
         Map<Integer, UUID> orderLineMap = new HashMap<Integer, UUID>();
         
-        String billTo = (String) getConfig().getProperty("billTo");
-        System.out.println("billTo: "+ billTo);
+        String billTo = (String) getConfig().getProperty("billTo"); 
         String billingUUID = this.getBillingMap().get(billTo);
         
         order.put("orderType", "One-Time");
@@ -310,13 +309,17 @@ public class MarcToJson {
         MarcReader reader = new MarcStreamReader(in);
         
         Record record = null;
-        logger.debug("reading marc file");
+        //if (isDebug()) {
+        //    System.out.println("reading marc file: "+ this.marcFileName);    
+        //}
         int numRec = 0;
         
         while (reader.hasNext()) {
             try {
                 record = reader.next();
-                //System.out.println(record.toString());
+                //if (isDebug()) {
+                //    System.out.println(record.toString());
+                //}
                 JSONObject responseMessage = new JSONObject();
                  
                 DataField twoFourFive = (DataField) record.getVariableField("245");
@@ -324,8 +327,9 @@ public class MarcToJson {
                 DataField nineEightyOne = (DataField) record.getVariableField("981");
                 
                 String title = marcUtils.getTitle(twoFourFive);
-                //System.out.println("Title: "+ title);
-                responseMessage.put("title", title);
+                if (isDebug()) {
+                    System.out.println("Title: "+ title);
+                }
                 
                 final String fundCode = marcUtils.getFundCode(nineEighty);
                 final String vendorCode =  marcUtils.getVendorCode(nineEighty);
@@ -344,23 +348,46 @@ public class MarcToJson {
 
                 DataField nineFiveTwo = (DataField) record.getVariableField("952");
                 String locationName = marcUtils.getLocation(nineFiveTwo);
-                responseMessage.put("location", locationName + " (" + lookupTable.get(locationName + "-location") + ")");
+                //responseMessage.put("location", locationName + " (" + lookupTable.get(locationName + "-location") + ")");
                 final String requester = marcUtils.getRequester(nineEightyOne);
                 final String rush = marcUtils.getRush(nineEightyOne);
                  
                 //LOOK UP VENDOR
-                //System.out.println("lookupVendor");
+                if (isDebug()) {
+                    System.out.println("Lookup vendor: "+ vendorCode);
+                }
                 String organizationEndpoint = this.getEndpoint() + "/organizations-storage/organizations?limit=30&offset=0&query=((code='" + vendorCode + "'))";
                 String orgLookupResponse = this.apiService.callApiGet(organizationEndpoint,  token);
                 JSONObject orgObject = new JSONObject(orgLookupResponse);
                 String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
                 
                 //LOOK UP THE FUND
-                //System.out.println("lookup Fund");
+                if (isDebug()) {
+                    System.out.println("Lookup fund: "+ fundCode);
+                }
                 final String fundEndpoint = this.getEndpoint() + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
                 final String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
                                 
-                
+                String notes =  marcUtils.getReceivingNote(nineEightyOne);
+                if (StringUtils.isNotEmpty(notes)) {
+                    String noteTypeName = (String) this.getConfig().getProperty("noteType");
+                     
+                    JSONObject noteAsJson = new JSONObject();
+                    JSONArray links = new JSONArray();
+                    JSONObject link = new JSONObject();
+                    link.put("type", "poLine");
+                    link.put("id", orderLineMap.get(numRec));
+                    links.put(link);
+                    noteAsJson.put("links", links);
+                    noteAsJson.put("typeId", lookupTable.get(noteTypeName));
+                    noteAsJson.put("domain", "orders");
+                    noteAsJson.put("content", notes);
+                    noteAsJson.put("title", notes);
+                    if (isDebug()) {
+                        System.out.println("post noteAsJson");
+                        System.out.println(noteAsJson.toString(3));
+                    }
+                }
                 // CREATING THE PURCHASE ORDER                
                 
                 order.put("vendor", vendorId);                
@@ -371,8 +398,7 @@ public class MarcToJson {
                 JSONObject cost = new JSONObject();
                 JSONObject location = new JSONObject();
                 JSONArray locations = new JSONArray(); 
-                
-                logger.trace("electronic=false");
+  
                 JSONObject physical = new JSONObject();
                 physical.put("createInventory", "Instance, Holding, Item");
                 physical.put("materialType", lookupTable.get(materialTypeName));
@@ -395,7 +421,7 @@ public class MarcToJson {
                 }                
                 UUID orderLineUUID = UUID.randomUUID();
                 orderLine.put("id", orderLineUUID);
-                responseMessage.put("id", orderLineUUID.toString());
+                //responseMessage.put("id", orderLineUUID.toString());
                 orderLineMap.put(numRec, orderLineUUID); 
                 
                 orderLine.put("source", "User");
@@ -438,25 +464,21 @@ public class MarcToJson {
                 orderLine.put("poLineNumber", poLineNumber);
                 orderLine.put("purchaseOrderId", orderUUID.toString());
                 poLines.put(orderLine);
-                order.put("compositePoLines", poLines);                
-                responseMessages.put(responseMessage);
+                order.put("compositePoLines", poLines);
+                responseMessages.put(order);
+                // responseMessages.put(responseMessage);
             } catch (Exception e) {
                 logger.error(e.toString());
-                JSONObject responseMessage = new JSONObject();
-                responseMessage.put("error", e.toString());
-                responseMessage.put("PONumber", poNumberObj.get("poNumber"));
-                responseMessages.put(responseMessage);
-                
+                JSONObject errorMessage = new JSONObject();
+                errorMessage.put("error", e.toString());
+                errorMessage.put("PONumber", poNumberObj.get("poNumber"));
+                errorMessages.put(errorMessage);
+                return errorMessages;                
             }
             
             numRec++;
          
-        }
-        System.out.println("Here is the PO order number: " + poNumberObj.get("poNumber"));
-        System.out.println(order.toString(INDENT));
-            
-        //System.out.println();
-        //System.out.println("Number of records found: "+ numRec); 
+        } 
         
         return responseMessages;
     }
@@ -467,7 +489,7 @@ public class MarcToJson {
      * @param name - name of datafield
      */
     public void validateDataField(DataField df, String name) {
-        if (df == null)    {
+        if (df == null) {
             logger.error("Required Datafield " + name + " is null");
             System.exit(1);
         }
