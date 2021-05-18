@@ -41,6 +41,7 @@ public class OrderImport {
 	private static final Logger logger = Logger.getLogger(OrderImport.class);
 	private ServletContext myContext;
 	private HashMap<String,String> lookupTable;
+	private HashMap<String, String> billingMap;
 	private String tenant;
 	
 	private ApiService apiService;
@@ -57,10 +58,16 @@ public class OrderImport {
 		String apiUsername = (String) getMyContext().getAttribute("okapi_username");
 		String apiPassword = (String) getMyContext().getAttribute("okapi_password");
 		tenant = (String) getMyContext().getAttribute("tenant"); 
-		
-		String permELocationName = (String) getMyContext().getAttribute("permELocation");
+		// we might need this later to validate if resources are electronic...leave commented out
+		//String permELocationName = (String) getMyContext().getAttribute("permELocation");
 		String noteTypeName = (String) getMyContext().getAttribute("noteType");
 		String materialTypeName = (String) getMyContext().getAttribute("materialType");
+		String billTo = (String) getMyContext().getAttribute("billTo");
+		
+		JSONArray envErrors = validateEnvironment();
+		if (envErrors != null) {
+		    return envErrors;
+		}
 		
 		//GET THE FOLIO TOKEN
 		JSONObject jsonObject = new JSONObject();
@@ -105,12 +112,20 @@ public class OrderImport {
 			 lookupUtil.setApiService(apiService);
 			 lookupUtil.load();
 			 this.lookupTable = lookupUtil.getReferenceValues(token);
+			 String billingEndpoint = baseOkapEndpoint+"configurations/entries?limit=100";
+			 this.billingMap = lookupUtil.getBillingAddresses(billingEndpoint, token);
 			 myContext.setAttribute(Constants.LOOKUP_TABLE, lookupTable);
+			 myContext.setAttribute(Constants.BILLINGMAP, billingMap);
+			 
+			 
 			 logger.debug("put lookup table in context");
 		} else {
 			 this.lookupTable = (HashMap<String, String>) myContext.getAttribute(Constants.LOOKUP_TABLE);
+			 this.billingMap = (HashMap<String, String>) myContext.getAttribute(Constants.BILLINGMAP);
 			 logger.debug("got lookup table from context");
-		}		 
+		}
+		
+		
 		
 		// READ THE MARC RECORD FROM THE FILE
 		in = new FileInputStream(filePath + fileName);
@@ -131,8 +146,9 @@ public class OrderImport {
 		logger.trace("get next PO number");
 		String poNumber = this.apiService.callApiGet(baseOkapEndpoint + "orders/po-number", token);		
 		JSONObject poNumberObj = new JSONObject(poNumber);
-		logger.debug("NEXT PO NUMBER: " + poNumberObj.get("poNumber"));
-		
+		logger.debug("NEXT PO NUMBER: " + poNumberObj.get("poNumber")); 
+        // does this have to be a UUID object?
+		String billingUUID = this.billingMap.get(billTo);
 		
 		
 		// CREATING THE PURCHASE ORDER
@@ -143,6 +159,7 @@ public class OrderImport {
 		order.put("id", orderUUID.toString());
 		order.put("approved", true);
 		order.put("workflowStatus","Open");
+		order.put("billTo", billingUUID);
 		order.put("poNumber", poNumberObj.get("poNumber"));
 		
 		JSONArray poLines = new JSONArray();
@@ -321,7 +338,8 @@ public class OrderImport {
 				String title = marcUtils.getTitle(twoFourFive);
 				responseMessage.put("title", title);
 				
-				String notes =  marcUtils.getInternalNotes(nineEightyOne);
+				// TODO: fix notes...I think this should be receiving notes
+				String notes =  marcUtils.getReceivingNote(nineEightyOne);
 				String locationName = marcUtils.getLocation(nineFiveTwo);
 				
 				//INSERT THE NOTE IF THERE IS A NOTE IN THE MARC RECORD
@@ -806,6 +824,16 @@ public class OrderImport {
 	
 	
 	
+	/**
+	 * @param orgCode
+	 * @param title
+	 * @param token
+	 * @param baseOkapiEndpoint
+	 * @return
+	 * @throws IOException
+	 * @throws InterruptedException
+	 * @throws Exception
+	 */
 	public JSONObject validateOrganization(String orgCode, String title,  String token, String baseOkapiEndpoint ) throws IOException, InterruptedException, Exception {
 		JSONObject errorMessage = new JSONObject();
 	    //LOOK UP THE ORGANIZATION
@@ -823,5 +851,43 @@ public class OrderImport {
 		return null;
 	}
 	
+	public JSONArray validateEnvironment( ) {
+	    JSONArray errors = new JSONArray();
+	    if (StringUtils.isEmpty((String) getMyContext().getAttribute("baseOkapEndpoint"))) {
+	       JSONObject errMsg = new JSONObject();
+	       errMsg.put("error", "baseOkapEndpoint environment variable not found");
+	       errors.put(errMsg);     
+	    }
+        if (StringUtils.isEmpty((String) getMyContext().getAttribute("okapi_username"))) {
+            JSONObject errMsg = new JSONObject();
+            errMsg.put("error", "api user environment variable not found");
+            errors.put(errMsg);
+        }
+        if (StringUtils.isEmpty((String) getMyContext().getAttribute("okapi_username"))) {
+            JSONObject errMsg = new JSONObject();
+            errMsg.put("error", "api password environment variable not found");
+            errors.put(errMsg);
+        }
+        if (StringUtils.isEmpty((String) getMyContext().getAttribute("tenant"))) {
+            JSONObject errMsg = new JSONObject();
+            errMsg.put("error", "api tenant environment variable not found");
+            errors.put(errMsg);
+        }
+        if (StringUtils.isEmpty((String) getMyContext().getAttribute("fiscalYearCode"))) {
+            JSONObject errMsg = new JSONObject();
+            errMsg.put("error", "fiscalYearCode environment variable not found");
+            errors.put(errMsg);
+        }
+        if (StringUtils.isEmpty((String) getMyContext().getAttribute("billTo"))) {
+            JSONObject errMsg = new JSONObject();
+            errMsg.put("error", "billTo environment variable not found");
+            errors.put(errMsg);
+        }
+        if (errors.isEmpty()) {
+	        return null;
+        } else {
+            return errors;
+        }
+	}
 
 }
