@@ -851,6 +851,9 @@ public class OrderImport {
 		return null;
 	}
 	
+	/**
+	 * @return and array with environment variable missing errors or null if no errors
+	 */
 	public JSONArray validateEnvironment( ) {
 	    JSONArray errors = new JSONArray();
 	    if (StringUtils.isEmpty((String) getMyContext().getAttribute("baseOkapEndpoint"))) {
