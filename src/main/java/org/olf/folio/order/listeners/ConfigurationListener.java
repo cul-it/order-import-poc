@@ -27,10 +27,11 @@ public class ConfigurationListener implements ServletContextListener {
 		 
 				config.setProperty("permELocation", System.getenv("permELocation")); 
 				config.setProperty("fiscalYearCode", System.getenv("fiscalYearCode"));
-				config.setProperty("loanType", System.getenv("loanType"));
-				config.setProperty("textForElectronicResources", System.getenv("textForElectronicResources"));
+				// config.setProperty("loanType", System.getenv("loanType"));
+				// config.setProperty("textForElectronicResources", System.getenv("textForElectronicResources"));
 				config.setProperty("noteType", System.getenv("noteType"));
 				config.setProperty("materialType", System.getenv("materialType"));
+				config.setProperty("billTo", System.getenv("billTo"));
 			 	
 			} else {
 			   PropertiesConfiguration props = new PropertiesConfiguration();
