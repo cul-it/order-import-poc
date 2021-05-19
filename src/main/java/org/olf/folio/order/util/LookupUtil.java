@@ -174,8 +174,7 @@ public class LookupUtil {
         Map<String, String> table = new HashMap<String, String>();        
         String response = this.apiService.callApiGet(endpoint, token); 
          
-        JSONObject jsonObject = new JSONObject(response);
-         
+        JSONObject jsonObject = new JSONObject(response);         
         
         JSONArray configsArray = jsonObject.getJSONArray("configs");
         Iterator elementsIterator = configsArray.iterator();
@@ -184,14 +183,12 @@ public class LookupUtil {
              
             String value = element.getString("value");
             String uuid = element.getString("id");
-            String configName = element.getString("configName");
-            if (StringUtils.equals(configName, "tenant.addresses")) {
-                // System.out.println(element.toString(3));
-                // System.out.println(); 
-                JSONObject values = new JSONObject(value);
-                String name = values.getString("name"); 
-                table.put(name, uuid);
-            }       
+            // System.out.println(element.toString(3));
+            // System.out.println(); 
+            JSONObject values = new JSONObject(value);
+            String name = values.getString("name"); 
+            table.put(name, uuid);
+                  
         }
         return (HashMap<String, String>) table;
     }

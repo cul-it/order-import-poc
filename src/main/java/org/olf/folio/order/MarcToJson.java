@@ -260,7 +260,7 @@ public class MarcToJson {
         this.lookupUtil.setApiService(getApiService());
         this.lookupUtil.load();
         this.setLookupTable(this.lookupUtil.getReferenceValues(this.getToken()));
-        String billingEndpoint = this.getEndpoint()+"configurations/entries?limit=100";
+        String billingEndpoint = this.getEndpoint()+"configurations/entries?query=(configName==tenant.addresses)";
         this.setBillingMap(this.lookupUtil.getBillingAddresses(billingEndpoint, this.token));
          
     } 

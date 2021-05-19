@@ -112,7 +112,7 @@ public class OrderImport {
 			 lookupUtil.setApiService(apiService);
 			 lookupUtil.load();
 			 this.lookupTable = lookupUtil.getReferenceValues(token);
-			 String billingEndpoint = baseOkapEndpoint+"configurations/entries?limit=100";
+			 String billingEndpoint = baseOkapEndpoint+"configurations/entries?query=(configName==tenant.addresses)";
 			 this.billingMap = lookupUtil.getBillingAddresses(billingEndpoint, token);
 			 myContext.setAttribute(Constants.LOOKUP_TABLE, lookupTable);
 			 myContext.setAttribute(Constants.BILLINGMAP, billingMap);
