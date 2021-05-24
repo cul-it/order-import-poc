@@ -342,15 +342,13 @@ public class MarcToJson {
                 
                 String price = marcUtils.getPrice(nineEighty, nineEightyOne);                
                 final String vendorItemId = marcUtils.getVendorItemId(nineEighty);
-                final String selector = marcUtils.getSelector(nineEighty);
+                
                 //String personName = marcUtils.getPersonName(nineEighty);
                 
-
                 DataField nineFiveTwo = (DataField) record.getVariableField("952");
                 String locationName = marcUtils.getLocation(nineFiveTwo);
                 //responseMessage.put("location", locationName + " (" + lookupTable.get(locationName + "-location") + ")");
-                final String requester = marcUtils.getRequester(nineEightyOne);
-                final String rush = marcUtils.getRush(nineEightyOne);
+                             
                  
                 //LOOK UP VENDOR
                 if (isDebug()) {
@@ -368,26 +366,7 @@ public class MarcToJson {
                 final String fundEndpoint = this.getEndpoint() + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
                 final String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
                                 
-                String notes =  marcUtils.getReceivingNote(nineEightyOne);
-                if (StringUtils.isNotEmpty(notes)) {
-                    String noteTypeName = (String) this.getConfig().getProperty("noteType");
-                     
-                    JSONObject noteAsJson = new JSONObject();
-                    JSONArray links = new JSONArray();
-                    JSONObject link = new JSONObject();
-                    link.put("type", "poLine");
-                    link.put("id", orderLineMap.get(numRec));
-                    links.put(link);
-                    noteAsJson.put("links", links);
-                    noteAsJson.put("typeId", lookupTable.get(noteTypeName));
-                    noteAsJson.put("domain", "orders");
-                    noteAsJson.put("content", notes);
-                    noteAsJson.put("title", notes);
-                    if (isDebug()) {
-                        System.out.println("post noteAsJson");
-                        System.out.println(noteAsJson.toString(3));
-                    }
-                }
+                 
                 // CREATING THE PURCHASE ORDER                
                 
                 order.put("vendor", vendorId);                
@@ -431,14 +410,35 @@ public class MarcToJson {
                 orderLine.put("titleOrPackage", title);
                 orderLine.put("acquisitionMethod", "Purchase");
                 
-                if (StringUtils.isNotEmpty(rush) && StringUtils.contains(rush.toLowerCase(), "rush")) {
+                // get the "internal note", which apparently will be used as a description 
+                String internalNotes =  marcUtils.getInternalNotes(nineEighty);
+                if (StringUtils.isNotEmpty(internalNotes)) {
+                    orderLine.put("description", internalNotes);
+                }
+                
+                // get the "receiving note"
+                String receivingNote =  marcUtils.getReceivingNote(nineEightyOne);
+                if (StringUtils.isNotEmpty(receivingNote)) {
+                    JSONObject detailsObject = new JSONObject();
+                    detailsObject.put("receivingNote", receivingNote);
+                    orderLine.put("details", detailsObject);
+                }
+                
+                // get rush value
+                String rush = marcUtils.getRush(nineEightyOne);
+                // TODO: check if match rush value to Rush:yes before adding to orderLine
+                if (StringUtils.isNotEmpty(rush) && StringUtils.contains(rush.toLowerCase(), "rush:yes")) {
                     orderLine.put("rush", true);
                 }
                 
+                // get selector
+                String selector = marcUtils.getSelector(nineEighty);
                 if (StringUtils.isNotEmpty(selector)) {
                     orderLine.put("selector", selector);
                 }
                 
+                // get requester
+                String requester = marcUtils.getRequester(nineEightyOne);
                 if (StringUtils.isNotEmpty(requester)) {
                     orderLine.put("requester", requester);
                 }

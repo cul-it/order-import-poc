@@ -190,12 +190,11 @@ public class OrderImport {
 			    
 				String price = marcUtils.getPrice(nineEighty, nineEightyOne); 
 				String vendorItemId = marcUtils.getVendorItemId(nineEighty);
-				String selector = marcUtils.getSelector(nineEighty);
+				
 				String personName = marcUtils.getPersonName(nineEighty);
 			    
 			    String locationName = marcUtils.getLocation(nineFiveTwo);
-			    String requester = marcUtils.getRequester(nineEightyOne);
-			    String rush = marcUtils.getRush(nineEightyOne);
+			    
 			     
 			    //LOOK UP VENDOR
 			    //System.out.println("lookupVendor");
@@ -249,24 +248,47 @@ public class OrderImport {
 				orderLineMap.put(numRec, orderLineUUID); 
 				
 				orderLine.put("source", "User");
-				cost.put("currency", "USD");
+				cost.put("currency", "USD"); // TODO: get this from marc or use an env variable
 				orderLine.put("cost", cost);
 				orderLine.put("locations", locations);
-				orderLine.put("titleOrPackage",title);
+				orderLine.put("titleOrPackage", title);
 				orderLine.put("acquisitionMethod", "Purchase");
 				
-				if (StringUtils.isNotEmpty(rush) && StringUtils.contains(rush.toLowerCase(), "rush")) {
-					orderLine.put("rush", true);
+				// get the "internal note", which apparently will be used as a description 
+				String internalNotes =  marcUtils.getInternalNotes(nineEighty);
+				if (StringUtils.isNotEmpty(internalNotes)) {
+				    orderLine.put("description", internalNotes);
 				}
 				
+				// get the "receiving note"
+                String receivingNote =  marcUtils.getReceivingNote(nineEightyOne);
+                if (StringUtils.isNotEmpty(receivingNote)) {
+                    JSONObject detailsObject = new JSONObject();
+                    detailsObject.put("receivingNote", receivingNote);
+                    orderLine.put("details", detailsObject);
+                }
+				
+				// get rush value
+				String rush = marcUtils.getRush(nineEightyOne);
+				// TODO: check if match rush value to ;Rush:yes before adding to orderLine
+                if (StringUtils.isNotEmpty(rush) && StringUtils.contains(rush.toLowerCase(), "rush")) {
+                    orderLine.put("rush", true);
+                }
+
+				// get selector
+				String selector = marcUtils.getSelector(nineEighty);
 				if (StringUtils.isNotEmpty(selector)) {
 					orderLine.put("selector", selector);
 				}
 				
+				// get requester
+				String requester = marcUtils.getRequester(nineEightyOne);
 				if (StringUtils.isNotEmpty(requester)) {
 					orderLine.put("requester", requester);
 				}
 				
+				
+				// add fund distribution info
 				JSONArray funds = new JSONArray();
 				JSONObject fundDist = new JSONObject();
 				fundDist.put("distributionType", "percentage");
@@ -280,7 +302,8 @@ public class OrderImport {
 				} else {
 					numRecString = String.valueOf(numRec);
 				} 
-					
+				
+				// add the poLine number and orderUUID
 				String poLineNumber = "a" + poNumberObj.get("poNumber") + "-"+ numRecString;
 				orderLine.put("poLineNumber", poLineNumber);
 				orderLine.put("purchaseOrderId", orderUUID.toString());
@@ -299,7 +322,7 @@ public class OrderImport {
 		} 
 		
 		logger.debug("Here is the PO order number: "+ poNumberObj.get("poNumber"));
-		logger.debug(order.toString(3));
+		logger.info(order.toString(3));
 		
 		//POST THE ORDER AND LINE:
 		String orderResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "orders/composite-orders", order, token); 
@@ -338,29 +361,9 @@ public class OrderImport {
 				String title = marcUtils.getTitle(twoFourFive);
 				responseMessage.put("title", title);
 				
-				// TODO: fix notes...I think this should be receiving notes
-				String notes =  marcUtils.getReceivingNote(nineEightyOne);
-				String locationName = marcUtils.getLocation(nineFiveTwo);
 				
-				//INSERT THE NOTE IF THERE IS A NOTE IN THE MARC RECORD
-				if (notes != null && !notes.equalsIgnoreCase("")) {
-					logger.debug("NOTE TYPE NAME: " + noteTypeName);
-					 
-					JSONObject noteAsJson = new JSONObject();
-					JSONArray links = new JSONArray();
-					JSONObject link = new JSONObject();
-					link.put("type", "poLine");
-					link.put("id", orderLineMap.get(numRec));
-					links.put(link);
-					noteAsJson.put("links", links);
-					noteAsJson.put("typeId", lookupTable.get(noteTypeName));
-					noteAsJson.put("domain", "orders");
-					noteAsJson.put("content", notes);
-					noteAsJson.put("title", notes);
-					logger.debug("post noteAsJson");
-					String noteResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "/notes", noteAsJson, token); 
-					logger.debug(noteResponse);
-				}
+				String locationName = marcUtils.getLocation(nineFiveTwo);				
+				
 				
 				UUID snapshotId = UUID.randomUUID();
 				UUID recordTableId = UUID.randomUUID();					
