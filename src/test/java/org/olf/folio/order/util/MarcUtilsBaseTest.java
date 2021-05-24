@@ -30,6 +30,7 @@ public class MarcUtilsBaseTest {
     protected String requestors;
     protected String singleharrass;
     protected String harrassowitz;
+    protected String bksFO;
 
     MarcUtils marcUtils = new MarcUtils();
 
@@ -43,6 +44,7 @@ public class MarcUtilsBaseTest {
         this.requestors = this.buildDir + "/marc-test-files/requesters_5-records_2021-03-11.mrc";
         this.singleharrass = this.buildDir + "/marc-test-files/singleharrass.mrc";
         this.harrassowitz = this.buildDir + "/marc-test-files/harrasowitz_9-records_2021-03-10.mrc";
+        this.bksFO = this.buildDir + "/marc-test-files/w.j.bksFO.mrc";
     }
 
     public List<Record> getRecords(String fname) throws Exception {
