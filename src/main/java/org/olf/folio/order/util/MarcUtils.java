@@ -1,9 +1,12 @@
 package org.olf.folio.order.util;
 
  
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List; 
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.marc4j.marc.DataField;
@@ -52,13 +55,25 @@ public class MarcUtils {
 	    return title;
 	}
 	
-	public String getPrice(DataField nineEighty, DataField nineEightyOne) {
-		String price = new String();
-		if (nineEightyOne != null) {
-	    	price = nineEightyOne.getSubfieldsAsString(PRICE); 
-		}
-	    return price;
-	}
+	/**
+	 * getPrice from marc, defalt to 0.00.
+	 * @param nineEightyOne
+	 * @return
+	 */
+	public String getPrice(DataField nineEightyOne) {
+        String price = new String();
+        if (nineEightyOne != null) {
+            price = nineEightyOne.getSubfieldsAsString(PRICE);
+            if (price == null) {
+                price = "0.00";
+            } else  {
+                return normalizePrice(price);
+            }
+        } else {
+            price = "0.00";   
+        }
+        return price;
+    }
 	
 	public String getQuantity(DataField nineEighty ) {
 		String quantity = new String();
@@ -192,6 +207,15 @@ public class MarcUtils {
 		return eResources;
 		
 		
+	}
+	
+	public String normalizePrice(String priceStr) {
+	    try {
+	       double f = Double.parseDouble(priceStr);
+	       return String.format("%.2f", new BigDecimal(f));
+	    } catch (NumberFormatException e) {
+	        return "0.00";
+	    }
 	}
 	
 
