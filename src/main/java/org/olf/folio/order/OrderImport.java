@@ -351,7 +351,8 @@ public class OrderImport {
 				 
 				record = reader2.next();				
 				JSONObject responseMessage = new JSONObject();
-				responseMessage.put("poNumber", poNumberObj.get("poNumber"));				 
+				responseMessage.put("poNumber", poNumberObj.get("poNumber"));
+				responseMessage.put("poUUID", orderUUID.toString());
 				
 				DataField twoFourFive = (DataField) record.getVariableField("245");
 				DataField nineEighty = (DataField) record.getVariableField("980");
@@ -369,8 +370,10 @@ public class OrderImport {
 				UUID recordTableId = UUID.randomUUID();					
 				
 				String instanceId = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("instanceId");
+				String poLineNumber = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("poLineNumber");
 				
-				responseMessage.put("id", orderLineMap.get(numRec));
+				responseMessage.put("poLineUUID", orderLineMap.get(numRec));
+				responseMessage.put("poLineNumber", poLineNumber);
 				
 				//GET THE INSTANCE RECORD FOLIO CREATED, SO WE CAN ADD BIB INFO TO IT:
 				logger.debug("get InstanceResponse");
@@ -519,6 +522,7 @@ public class OrderImport {
 				String createHoldingsResponse = apiService.callApiPut(baseOkapEndpoint + "holdings-storage/holdings/" + holdingRecord.getString("id"), holdingRecord,token);
 				
 				responseMessage.put("theOne", hrid);
+				responseMessage.put("instanceUUID", instanceId);
 				responseMessage.put("location", locationName +" ("+ lookupTable.get(locationName + "-location") +")");				
 				responseMessages.put(responseMessage);
 				numRec++;

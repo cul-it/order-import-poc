@@ -256,21 +256,28 @@ function showname() {
 }
 </script>
 
-<script id="orderTemplate" type="text/x-handlebars-template"> 
-<p><b>Created Purchase Order Number</b>: {{this.0.poNumber}}</p>
-{{#each this}} 	
-	<br /> <b>Title</b>: {{title}}
-    <br /> <b>Location</b>: {{location}}
-    <br /> <b>OrderLineId</b>: {{id}}
-    <br /> <b>001</b>: {{theOne}}
-    <br />
-    {{#if error}}
-	 <br /> <b>ERROR:</b> {{error}} 
-     <hr />
-     <br />
-    {{/if}}
-{{/each}}
+<script id="orderTemplate" type="text/x-handlebars-template">
+{{#if this.0.poUUID}}
+  <p><b>Created Purchase Order Number</b>: <a href="https://cornell-training.folio.ebsco.com/orders/view/{{this.0.poUUID}}" title="View this PO in FOLIO Orders app" target="_blank">{{this.0.poNumber}}</a></p>
+{{/if}}
 
+<ul>
+  {{#each this}}
+    <li>
+      {{#if error}}
+        <h5>ERROR:</h5>
+        {{error}}
+      {{else}}
+        <dl>
+          <dt><a href="https://cornell-training.folio.ebsco.com/orders/lines/view/{{poLineUUID}}" title="View this PO Line in FOLIO Orders app" target="_blank">{{poLineNumber}}</a></dt>
+          <dd><a href="https://cornell-training.folio.ebsco.com/inventory/view/{{instanceUUID}}" title="View this Instance in FOLIO Inventory app" target="_blank">{{title}}</a></dd>
+          <!-- <dt>Location</dt> -->
+          <!-- <dd>{{location}}</dd> -->
+        </dl>
+      {{/if}}
+    </li>
+  {{/each}}
+</ul>
 </script>
 
 </html>
