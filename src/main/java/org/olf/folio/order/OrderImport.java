@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.UUID;
 import javax.servlet.ServletContext;
 import org.json.JSONArray;
@@ -142,7 +144,7 @@ public class OrderImport {
 	    UUID orderUUID = UUID.randomUUID();	    
 	    Map<Integer, UUID> orderLineMap = new HashMap<Integer, UUID>(); 
 	    
-	    //GET THE NEXT PO NUMBER
+	    //GET THE NEXT PO NUMBER 
 		logger.trace("get next PO number");
 		String poNumber = this.apiService.callApiGet(baseOkapEndpoint + "orders/po-number", token);		
 		JSONObject poNumberObj = new JSONObject(poNumber);
@@ -172,7 +174,7 @@ public class OrderImport {
 		while (reader.hasNext()) {
 			try {
 				record = reader.next();
-				//System.out.println(record.toString());				
+				//logger.debug(record.toString());				
 				 
 				DataField twoFourFive = (DataField) record.getVariableField("245");
 				DataField nineEighty = (DataField) record.getVariableField("980");
@@ -188,23 +190,21 @@ public class OrderImport {
 				Integer quantityNo = 0; //INIT
 			    if (quantity != null)  quantityNo = Integer.valueOf(quantity);
 			    
-				String price = marcUtils.getPrice(nineEighty, nineEightyOne); 
-				String vendorItemId = marcUtils.getVendorItemId(nineEighty);
-				
-				String personName = marcUtils.getPersonName(nineEighty);
-			    
+				String price = marcUtils.getPrice(nineEightyOne); 
+				String vendorItemId = marcUtils.getVendorItemId(nineEighty);				
+				//String personName = marcUtils.getPersonName(nineEighty);			    
 			    String locationName = marcUtils.getLocation(nineFiveTwo);
 			    
 			     
 			    //LOOK UP VENDOR
-			    //System.out.println("lookupVendor");
+			    //logger.debug("lookupVendor");
 				String organizationEndpoint = baseOkapEndpoint + "/organizations-storage/organizations?limit=30&offset=0&query=((code='" + vendorCode + "'))";
 				String orgLookupResponse = this.apiService.callApiGet(organizationEndpoint,  token);
 				JSONObject orgObject = new JSONObject(orgLookupResponse);
 				String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
 				
 				//LOOK UP THE FUND
-				//System.out.println("lookup Fund");
+				//logger.debug("lookup Fund");
 				String fundEndpoint = baseOkapEndpoint + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
 				String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
 				JSONObject fundsObject = new JSONObject(fundResponse);
@@ -242,7 +242,8 @@ public class OrderImport {
 					vendorDetail.put("refNumberType", "Internal vendor number");
 					vendorDetail.put("vendorAccount", "");
 					orderLine.put("vendorDetail", vendorDetail);
-				}				
+				}
+				
 				UUID orderLineUUID = UUID.randomUUID();
 				orderLine.put("id", orderLineUUID);
 				orderLineMap.put(numRec, orderLineUUID); 
@@ -271,7 +272,7 @@ public class OrderImport {
 				// get rush value
 				String rush = marcUtils.getRush(nineEightyOne);
 				// TODO: check if match rush value to ;Rush:yes before adding to orderLine
-                if (StringUtils.isNotEmpty(rush) && StringUtils.contains(rush.toLowerCase(), "rush")) {
+                if (StringUtils.isNotEmpty(rush) && StringUtils.contains(rush.toLowerCase(), "rush:yes")) {
                     orderLine.put("rush", true);
                 }
 
@@ -296,16 +297,17 @@ public class OrderImport {
 				fundDist.put("fundId", fundId);
 				funds.put(fundDist);
 				orderLine.put("fundDistribution", funds);
-				String numRecString = new String();
-				if (numRec < 10 ) {
-					numRecString = "0"+ String.valueOf(numRec);
-				} else {
-					numRecString = String.valueOf(numRec);
-				} 
+				
+				//String numRecString = new String();
+				//if (numRec < 10 ) {
+				//	numRecString = "0"+ String.valueOf(numRec);
+				//} else {
+				//	numRecString = String.valueOf(numRec);
+				//} 
 				
 				// add the poLine number and orderUUID
-				String poLineNumber = "a" + poNumberObj.get("poNumber") + "-"+ numRecString;
-				orderLine.put("poLineNumber", poLineNumber);
+				//String poLineNumber = "a" + poNumberObj.get("poNumber") + "-"+ numRecString;
+				//orderLine.put("poLineNumber", poLineNumber);
 				orderLine.put("purchaseOrderId", orderUUID.toString());
 				poLines.put(orderLine);
 				order.put("compositePoLines", poLines);				
@@ -322,7 +324,7 @@ public class OrderImport {
 		} 
 		
 		logger.debug("Here is the PO order number: "+ poNumberObj.get("poNumber"));
-		logger.info(order.toString(3));
+		logger.debug(order.toString(3));
 		
 		//POST THE ORDER AND LINE:
 		String orderResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "orders/composite-orders", order, token); 
@@ -334,8 +336,8 @@ public class OrderImport {
 		logger.debug("getUpdatedPurchaseOrder");
 		String updatedPurchaseOrder = apiService.callApiGet(baseOkapEndpoint + "orders/composite-orders/" +orderUUID.toString() ,token); 
 		JSONObject updatedPurchaseOrderJson = new JSONObject(updatedPurchaseOrder);
-		logger.debug("updated purchase order...");
-		logger.debug(updatedPurchaseOrderJson.toString(3));
+		logger.info("updated purchase order...");
+		logger.info(updatedPurchaseOrderJson.toString(3));
 		
 		//JSONObject poMessage = new JSONObject();
 		//poMessage.put("poNum", poNumberObj.get("poNumber"));
@@ -361,9 +363,7 @@ public class OrderImport {
 				String title = marcUtils.getTitle(twoFourFive);
 				responseMessage.put("title", title);
 				
-				
 				String locationName = marcUtils.getLocation(nineFiveTwo);				
-				
 				
 				UUID snapshotId = UUID.randomUUID();
 				UUID recordTableId = UUID.randomUUID();					
@@ -577,18 +577,9 @@ public class OrderImport {
 					continue;
 				}
 				
-				//if (nineFiveTwo == null) {
-				//	JSONObject errorMessage = new JSONObject();
-				//	errorMessage.put("error", "Record is missing the 952 field");
-				//	errorMessage.put("PONumber", "~error~");
-				//	errorMessage.put("title", title);
-				//	errorMessages.put(errorMessage);
-				//	continue;
-				//}
-				
+								
 				String fundCode = marcUtils.getFundCode(nineEighty); 
 				String vendorCode =  marcUtils.getVendorCode(nineEighty);
-				String price = marcUtils.getPrice(nineEighty, nineEightyOne);
 			    
 				String quantity =  marcUtils.getQuantity(nineEighty);
 				Integer quantityNo = 0;
@@ -598,7 +589,6 @@ public class OrderImport {
 			    Map<String, String> requiredFields = new HashMap<String, String>(); 
 			    requiredFields.put("Fund code", fundCode);
 			    requiredFields.put("Vendor Code", vendorCode);
-			    requiredFields.put("Price" , price); 
 			    
 			    // MAKE SURE EACH OF THE REQUIRED SUBFIELDS HAS DATA
 		        for (Map.Entry<String,String> entry : requiredFields.entrySet())  {
@@ -625,9 +615,9 @@ public class OrderImport {
 			    	errorMessages.put(orgValidationResult);				    
 			    }
 			    				    
-			    JSONObject fundValidationResult = validateFund(fundCode, title, token, baseOkapEndpoint, price);
+			    JSONObject fundValidationResult = validateFund(fundCode, title, token, baseOkapEndpoint);
 			    if (fundValidationResult != null) {
-			    	logger.error("fundCode invalid: "+ fundCode + " (price: "+ price +")");
+			    	//logger.error("fundCode invalid: "+ fundCode + " (price: "+ price +")");
 			    	logger.error(record.toString());
 			    	errorMessages.put(fundValidationResult);
 			    }
@@ -793,7 +783,7 @@ public class OrderImport {
 	//TODO 
 	//THESE VALIDATION METHODS COULD
 	//USE IMPROVEMENT
-	public JSONObject validateFund(String fundCode, String title, String token, String baseOkapiEndpoint, String price ) throws IOException, InterruptedException, Exception {
+	public JSONObject validateFund(String fundCode, String title, String token, String baseOkapiEndpoint) throws IOException, InterruptedException, Exception {
 		
 		//GET CURRENT FISCAL YEAR
 		String fiscalYearCode =  (String) getMyContext().getAttribute("fiscalYearCode");

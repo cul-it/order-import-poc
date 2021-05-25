@@ -340,7 +340,7 @@ public class MarcToJson {
                     quantityNo = Integer.valueOf(quantity);
                 }
                 
-                String price = marcUtils.getPrice(nineEighty, nineEightyOne);                
+                String price = marcUtils.getPrice(nineEightyOne);                
                 final String vendorItemId = marcUtils.getVendorItemId(nineEighty);
                 
                 //String personName = marcUtils.getPersonName(nineEighty);
@@ -460,8 +460,8 @@ public class MarcToJson {
                     numRecString = String.valueOf(numRec);
                 } 
                     
-                String poLineNumber = poNumberObj.get("poNumber") + "-" + numRecString;
-                orderLine.put("poLineNumber", poLineNumber);
+                //String poLineNumber = poNumberObj.get("poNumber") + "-" + numRecString;
+                //orderLine.put("poLineNumber", poLineNumber);
                 orderLine.put("purchaseOrderId", orderUUID.toString());
                 poLines.put(orderLine);
                 order.put("compositePoLines", poLines);
