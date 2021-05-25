@@ -369,10 +369,11 @@ public class OrderImport {
 				UUID snapshotId = UUID.randomUUID();
 				UUID recordTableId = UUID.randomUUID();					
 				
-				String instanceId = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("instanceId");
+				String poLineUUID = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("id");
 				String poLineNumber = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("poLineNumber");
+				String instanceId = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("instanceId");
 				
-				responseMessage.put("poLineUUID", orderLineMap.get(numRec));
+				responseMessage.put("poLineUUID", poLineUUID);
 				responseMessage.put("poLineNumber", poLineNumber);
 				
 				//GET THE INSTANCE RECORD FOLIO CREATED, SO WE CAN ADD BIB INFO TO IT:
