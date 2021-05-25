@@ -9,7 +9,6 @@
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.1/css/bulma.min.css">
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
 	<script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
-	<link href="https://fonts.googleapis.com/css?family=Special+Elite" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css?family=Old+Standard+TT" rel="stylesheet"> 
 </head>
 
@@ -126,10 +125,10 @@
 									<div class="tile is-parent">
 				<article class="tile is-child notification is-light">
 					<div class="content">
-						<p class="title">Response<span style="color:#f5f5f5">6-29-20B</span></p>
+						<p class="title">Results</p>
 						<p class="subtitle"></p>
 						<div id="poNumber"></div>
-						<div id="logcontent" class="content" style="font-family: 'Special Elite', cursive;"></div>
+						<div id="logcontent" class="content"></div>
 					</div>
 				</article>
 			</div>
