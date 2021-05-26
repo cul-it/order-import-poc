@@ -270,6 +270,9 @@ function showname() {
         <dl>
           <dt><a href="https://cornell-training.folio.ebsco.com/orders/lines/view/{{poLineUUID}}" title="View this PO Line in FOLIO Orders app" target="_blank">{{poLineNumber}}</a></dt>
           <dd><a href="https://cornell-training.folio.ebsco.com/inventory/view/{{instanceUUID}}" title="View this Instance in FOLIO Inventory app" target="_blank">{{title}}</a></dd>
+          {{#if requester}}
+            <dd><strong>{{requester}}</strong></dd>
+          {{/if}}
           <!-- <dt>Location</dt> -->
           <!-- <dd>{{location}}</dd> -->
         </dl>
