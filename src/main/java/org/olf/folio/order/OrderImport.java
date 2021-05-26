@@ -358,9 +358,6 @@ public class OrderImport {
 				DataField nineEighty = (DataField) record.getVariableField("980");
 				DataField nineEightyOne = (DataField) record.getVariableField("981");
 			    DataField nineFiveTwo = (DataField) record.getVariableField("952"); 
-			    
-				String title = marcUtils.getTitle(twoFourFive);
-				responseMessage.put("title", title);
 				
 				
 				String locationName = marcUtils.getLocation(nineFiveTwo);				
@@ -372,6 +369,7 @@ public class OrderImport {
 				String poLineUUID = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("id");
 				String poLineNumber = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("poLineNumber");
 				String instanceId = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("instanceId");
+				String title = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("titleOrPackage");
 				String requester = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optString("requester");
 				String internalNote = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optString("description");
 				JSONObject polDetails = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optJSONObject("details");
@@ -383,6 +381,7 @@ public class OrderImport {
 				
 				responseMessage.put("poLineUUID", poLineUUID);
 				responseMessage.put("poLineNumber", poLineNumber);
+				responseMessage.put("title", title);
 				responseMessage.put("requester", requester);
 				responseMessage.put("internalNote", internalNote);
 				responseMessage.put("receivingNote", receivingNote);
