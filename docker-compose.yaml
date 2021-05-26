@@ -6,6 +6,7 @@ services:
     environment:
       - USE_SYSTEM_ENV=true
       - baseOkapEndpoint=${baseOkapEndpoint}
+      - baseFolioUrl=${baseFolioUrl}
       - okapi_username=${okapi_username}
       - okapi_password=${okapi_password}
       - tenant=${tenant}

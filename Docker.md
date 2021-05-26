@@ -10,6 +10,7 @@ The order-import-poc application requires several environment variables to be se
 1. Copy `.env.example` to `.env`
 1. Edit the `.env` file to use appropriate values for:
    - `baseOkapEndpoint`
+   - `baseFolioUrl`
    - `okapi_username`
    - `okapi_password`
    - `tenant`

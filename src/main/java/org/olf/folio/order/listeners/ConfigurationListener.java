@@ -19,8 +19,9 @@ public class ConfigurationListener implements ServletContextListener {
 			config.setListDelimiter('|');
 			String use_env = System.getenv("USE_SYSTEM_ENV");
 			if (StringUtils.isNotEmpty(use_env) && StringUtils.equals(use_env, "true")) {
-				config.setProperty("buildDir",  System.getenv("buildDir"));
-				config.setProperty("baseOkapEndpoint",  System.getenv("baseOkapEndpoint"));
+				config.setProperty("buildDir", System.getenv("buildDir"));
+				config.setProperty("baseOkapEndpoint", System.getenv("baseOkapEndpoint"));
+				config.setProperty("baseFolioUrl", System.getenv("baseFolioUrl"));
 				config.setProperty("okapi_username", System.getenv("okapi_username"));
 				config.setProperty("okapi_password", System.getenv("okapi_password"));
 				config.setProperty("tenant", System.getenv("tenant"));
