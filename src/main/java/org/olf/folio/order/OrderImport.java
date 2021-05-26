@@ -373,10 +373,19 @@ public class OrderImport {
 				String poLineNumber = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("poLineNumber");
 				String instanceId = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("instanceId");
 				String requester = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optString("requester");
+				String internalNote = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optString("description");
+				JSONObject polDetails = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optJSONObject("details");
+				
+				String receivingNote = null;
+				if (polDetails != null) {
+					receivingNote = polDetails.optString("receivingNote");
+				}
 				
 				responseMessage.put("poLineUUID", poLineUUID);
 				responseMessage.put("poLineNumber", poLineNumber);
 				responseMessage.put("requester", requester);
+				responseMessage.put("internalNote", internalNote);
+				responseMessage.put("receivingNote", receivingNote);
 				
 				//GET THE INSTANCE RECORD FOLIO CREATED, SO WE CAN ADD BIB INFO TO IT:
 				logger.debug("get InstanceResponse");

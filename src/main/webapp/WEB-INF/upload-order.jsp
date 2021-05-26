@@ -45,6 +45,14 @@
 	color: #a94442 !important;
 }
 
+.metadata {
+  margin: .4em 0;
+  padding-left: .6em;
+  font-family: monospace, monospace;
+  font-size: .8em;
+  background: #fff;
+}
+
 #tabs-with-content .tabs:not (:last-child) {
 	margin-bottom: 0;
 }
@@ -270,9 +278,9 @@ function showname() {
         <dl>
           <dt><a href="${baseFolioUrl}orders/lines/view/{{poLineUUID}}" title="View this PO Line in FOLIO Orders app" target="_blank">{{poLineNumber}}</a></dt>
           <dd><a href="${baseFolioUrl}inventory/view/{{instanceUUID}}" title="View this Instance in FOLIO Inventory app" target="_blank">{{title}}</a></dd>
-          {{#if requester}}
-            <dd><strong>{{requester}}</strong></dd>
-          {{/if}}
+          <dd class="metadata"><strong>{{requester}}</strong></dd>
+          <dd class="metadata">{{internalNote}}</dd>
+          <dd class="metadata">{{receivingNote}}</dd>
           <!-- <dt>Location</dt> -->
           <!-- <dd>{{location}}</dd> -->
         </dl>
