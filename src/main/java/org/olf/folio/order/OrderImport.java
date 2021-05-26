@@ -192,7 +192,8 @@ public class OrderImport {
 			    
 				String price = marcUtils.getPrice(nineEightyOne); 
 				String vendorItemId = marcUtils.getVendorItemId(nineEighty);				
-				//String personName = marcUtils.getPersonName(nineEighty);			    
+				//String personName = marcUtils.getPersonName(nineEighty);
+				 
 			    String locationName = marcUtils.getLocation(nineFiveTwo);
 			    
 			     
@@ -271,7 +272,6 @@ public class OrderImport {
 				
 				// get rush value
 				String rush = marcUtils.getRush(nineEightyOne);
-				// TODO: check if match rush value to ;Rush:yes before adding to orderLine
                 if (StringUtils.isNotEmpty(rush) && StringUtils.contains(rush.toLowerCase(), "rush:yes")) {
                     orderLine.put("rush", true);
                 }
@@ -296,18 +296,8 @@ public class OrderImport {
 				fundDist.put("value", 100);
 				fundDist.put("fundId", fundId);
 				funds.put(fundDist);
-				orderLine.put("fundDistribution", funds);
-				
-				//String numRecString = new String();
-				//if (numRec < 10 ) {
-				//	numRecString = "0"+ String.valueOf(numRec);
-				//} else {
-				//	numRecString = String.valueOf(numRec);
-				//} 
-				
-				// add the poLine number and orderUUID
-				//String poLineNumber = "a" + poNumberObj.get("poNumber") + "-"+ numRecString;
-				//orderLine.put("poLineNumber", poLineNumber);
+				orderLine.put("fundDistribution", funds);				
+				 
 				orderLine.put("purchaseOrderId", orderUUID.toString());
 				poLines.put(orderLine);
 				order.put("compositePoLines", poLines);				
@@ -343,34 +333,29 @@ public class OrderImport {
 		//poMessage.put("poNum", poNumberObj.get("poNumber"));
 		//responseMessages.put(poMessage);
 		
-		// read through again.
-		FileInputStream in2 = new FileInputStream(filePath + fileName);
-		MarcReader reader2 = new MarcStreamReader(in2);
-		numRec = 0; 
 		
-		while (reader2.hasNext()) {
-			try {
-				 
-				record = reader2.next();				
+		// read the poLines from the updated purchace order because the API does not necessarily create poLines
+		// in the same order as the were put into the posted PO
+		Iterator<Object> poLineIterator = updatedPurchaseOrderJson.getJSONArray("compositePoLines").iterator();
+		while (poLineIterator.hasNext()) {
+		    JSONObject poLineObject = (JSONObject) poLineIterator.next();
+			try { 	
 				JSONObject responseMessage = new JSONObject();
-				responseMessage.put("poNumber", poNumberObj.get("poNumber"));				 
-				
-				DataField twoFourFive = (DataField) record.getVariableField("245");
-				DataField nineEighty = (DataField) record.getVariableField("980");
-				DataField nineEightyOne = (DataField) record.getVariableField("981");
-			    DataField nineFiveTwo = (DataField) record.getVariableField("952"); 
-			    
-				String title = marcUtils.getTitle(twoFourFive);
+				responseMessage.put("poNumber", poNumberObj.get("poNumber"));  
+				String title = poLineObject.getString("titleOrPackage");
 				responseMessage.put("title", title);
 				
-				String locationName = marcUtils.getLocation(nineFiveTwo);				
+				String poLineNumber = poLineObject.getString("poLineNumber");
+				responseMessage.put("poLineNumber", poLineNumber);
+				
+				//String locationName = marcUtils.getLocation(nineFiveTwo);				
 				
 				UUID snapshotId = UUID.randomUUID();
 				UUID recordTableId = UUID.randomUUID();					
 				
-				String instanceId = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("instanceId");
 				
-				responseMessage.put("id", orderLineMap.get(numRec));
+				String instanceId = poLineObject.getString("instanceId");
+				responseMessage.put("id", instanceId);
 				
 				//GET THE INSTANCE RECORD FOLIO CREATED, SO WE CAN ADD BIB INFO TO IT:
 				logger.debug("get InstanceResponse");
@@ -519,11 +504,10 @@ public class OrderImport {
 				String createHoldingsResponse = apiService.callApiPut(baseOkapEndpoint + "holdings-storage/holdings/" + holdingRecord.getString("id"), holdingRecord,token);
 				
 				responseMessage.put("theOne", hrid);
-				responseMessage.put("location", locationName +" ("+ lookupTable.get(locationName + "-location") +")");				
+				// do we need location in the output?
+				//responseMessage.put("location", locationName +" ("+ lookupTable.get(locationName + "-location") +")");				
 				responseMessages.put(responseMessage);
-				numRec++;
-				
-				
+								
 			} catch(Exception e) {
 				e.printStackTrace();
 				logger.error(e.toString());
