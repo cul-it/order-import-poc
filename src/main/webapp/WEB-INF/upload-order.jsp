@@ -278,6 +278,7 @@ function showname() {
         <dl>
           <dt><a href="${baseFolioUrl}orders/lines/view/{{poLineUUID}}" title="View this PO Line in FOLIO Orders app" target="_blank">{{poLineNumber}}</a></dt>
           <dd><a href="${baseFolioUrl}inventory/view/{{instanceUUID}}" title="View this Instance in FOLIO Inventory app" target="_blank">{{title}}</a></dd>
+          <dd class="metadata">{{instanceHrid}}</dd>
           <dd class="metadata"><strong>{{requester}}</strong></dd>
           <dd class="metadata">{{internalNote}}</dd>
           <dd class="metadata">{{receivingNote}}</dd>

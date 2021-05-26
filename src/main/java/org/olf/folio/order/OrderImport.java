@@ -532,7 +532,7 @@ public class OrderImport {
 				logger.debug("Update holdings record");
 				String createHoldingsResponse = apiService.callApiPut(baseOkapEndpoint + "holdings-storage/holdings/" + holdingRecord.getString("id"), holdingRecord,token);
 				
-				responseMessage.put("theOne", hrid);
+				responseMessage.put("instanceHrid", hrid);
 				responseMessage.put("instanceUUID", instanceId);
 				responseMessage.put("location", locationName +" ("+ lookupTable.get(locationName + "-location") +")");				
 				responseMessages.put(responseMessage);
