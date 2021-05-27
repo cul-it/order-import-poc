@@ -84,13 +84,13 @@
 	
 	<div class="container">
 		<div class="tile is-ancestor">
-			<div class="tile is-vertical is-8">
+			<div class="tile is-vertical is-11">
 				<div class="tile">
 					<div class="tile is-parent is-vertical">
 						<div class="box">
 							<!--  left box start -->
 							<div id="tabs-with-content">
-								<div class="tabs is-centered">
+								<div class="tabs">
 									<ul>
 									<li>Upload File</li>
 									</ul>
