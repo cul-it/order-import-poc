@@ -149,6 +149,7 @@
 	</div>
 	<!-- END CONTENTS-->
 	<script src="https://code.jquery.com/jquery-3.2.1.js" integrity="sha256-DZAnKJ/6XZ9si04Hgrsxu/8s717jcIzLy3oi35EouyE=" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/autolinker/3.14.3/Autolinker.min.js" integrity="sha512-m+WCk8eyR3wZz7/BN7rVif/clwuqagMNqGAqsGhCofTUEVZLDMVjSRDzzW/ggUx4ILYpw5qHHPjyGyrrXftI2w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </body>
 
 <script>
@@ -223,6 +224,10 @@ Handlebars.registerHelper('formatTime', function(date, format) {
 	var mmnt = moment(date);
 	return mmnt.format(format);
 });
+
+Handlebars.registerHelper('linkify', function (string) {
+	return Autolinker.link(string);
+});
 </script>
 
 <script>
@@ -280,8 +285,8 @@ function showname() {
           <dd><a href="${baseFolioUrl}inventory/view/{{instanceUUID}}" title="View this Instance in FOLIO Inventory app" target="_blank">{{title}}</a></dd>
           <dd class="metadata">{{instanceHrid}}</dd>
           <dd class="metadata"><strong>{{requester}}</strong></dd>
-          <dd class="metadata">{{internalNote}}</dd>
-          <dd class="metadata">{{receivingNote}}</dd>
+          <dd class="metadata">{{{linkify internalNote}}}</dd>
+          <dd class="metadata">{{{linkify receivingNote}}}</dd>
           <!-- <dt>Location</dt> -->
           <!-- <dd>{{location}}</dd> -->
         </dl>
