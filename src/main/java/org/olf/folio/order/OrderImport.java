@@ -133,16 +133,16 @@ public class OrderImport {
 		in = new FileInputStream(filePath + fileName);
 		reader = new MarcStreamReader(in);
 		
+		// TODO: clean up... the instantiation of this byteArrayOutputStream is used below but seems to be 
+		// handled differently...this one uses Unicode...others use UTF-8
 		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		MarcWriter w = new MarcStreamWriter(byteArrayOutputStream,"UTF-8");
-		
+		MarcWriter w = new MarcStreamWriter(byteArrayOutputStream, "UTF-8");		
 		AnselToUnicode conv = new AnselToUnicode();
 		w.setConverter(conv);
 		
 		// GENERATE UUID for the PO
 	   
-	    UUID orderUUID = UUID.randomUUID();	    
-	    Map<Integer, UUID> orderLineMap = new HashMap<Integer, UUID>(); 
+	    UUID orderUUID = UUID.randomUUID();
 	    
 	    //GET THE NEXT PO NUMBER 
 		logger.trace("get next PO number");
@@ -150,8 +150,7 @@ public class OrderImport {
 		JSONObject poNumberObj = new JSONObject(poNumber);
 		logger.debug("NEXT PO NUMBER: " + poNumberObj.get("poNumber")); 
         // does this have to be a UUID object?
-		String billingUUID = this.billingMap.get(billTo);
-		
+		String billingUUID = this.billingMap.get(billTo);		
 		
 		// CREATING THE PURCHASE ORDER
 		JSONObject order = new JSONObject();
@@ -160,7 +159,7 @@ public class OrderImport {
 		order.put("reEncumber", false);
 		order.put("id", orderUUID.toString());
 		order.put("approved", true);
-		order.put("workflowStatus","Open");
+		order.put("workflowStatus", "Open");
 		order.put("billTo", billingUUID);
 		order.put("poNumber", poNumberObj.get("poNumber"));
 		
@@ -191,8 +190,7 @@ public class OrderImport {
 			    if (quantity != null)  quantityNo = Integer.valueOf(quantity);
 			    
 				String price = marcUtils.getPrice(nineEightyOne); 
-				String vendorItemId = marcUtils.getVendorItemId(nineEighty);				
-				//String personName = marcUtils.getPersonName(nineEighty);			    
+				String vendorItemId = marcUtils.getVendorItemId(nineEighty);		    
 			    String locationName = marcUtils.getLocation(nineFiveTwo);
 			    
 			     
@@ -246,8 +244,6 @@ public class OrderImport {
 				
 				UUID orderLineUUID = UUID.randomUUID();
 				orderLine.put("id", orderLineUUID);
-				orderLineMap.put(numRec, orderLineUUID); 
-				
 				orderLine.put("source", "User");
 				cost.put("currency", "USD"); // TODO: get this from marc or use an env variable
 				orderLine.put("cost", cost);
@@ -298,16 +294,7 @@ public class OrderImport {
 				funds.put(fundDist);
 				orderLine.put("fundDistribution", funds);
 				
-				//String numRecString = new String();
-				//if (numRec < 10 ) {
-				//	numRecString = "0"+ String.valueOf(numRec);
-				//} else {
-				//	numRecString = String.valueOf(numRec);
-				//} 
-				
-				// add the poLine number and orderUUID
-				//String poLineNumber = "a" + poNumberObj.get("poNumber") + "-"+ numRecString;
-				//orderLine.put("poLineNumber", poLineNumber);
+
 				orderLine.put("purchaseOrderId", orderUUID.toString());
 				poLines.put(orderLine);
 				order.put("compositePoLines", poLines);				
@@ -339,40 +326,26 @@ public class OrderImport {
 		logger.info("updated purchase order...");
 		logger.info(updatedPurchaseOrderJson.toString(3));
 		
-		//JSONObject poMessage = new JSONObject();
-		//poMessage.put("poNum", poNumberObj.get("poNumber"));
-		//responseMessages.put(poMessage);
-		
-		// read through again.
-		FileInputStream in2 = new FileInputStream(filePath + fileName);
-		MarcReader reader2 = new MarcStreamReader(in2);
-		numRec = 0; 
-		
-		while (reader2.hasNext()) {
-			try {
-				 
-				record = reader2.next();				
+		// read the poLines from the updated purchace order because the API does not necessarily create poLines
+        // in the same order as the were put into the posted PO
+        Iterator<Object> poLineIterator = updatedPurchaseOrderJson.getJSONArray("compositePoLines").iterator();		
+			
+        while (poLineIterator.hasNext()) {
+            JSONObject poLineObject = (JSONObject) poLineIterator.next();
+			try {				
 				JSONObject responseMessage = new JSONObject();
 				responseMessage.put("poNumber", poNumberObj.get("poNumber"));
 				responseMessage.put("poUUID", orderUUID.toString());
-				
-				DataField twoFourFive = (DataField) record.getVariableField("245");
-				DataField nineEighty = (DataField) record.getVariableField("980");
-				DataField nineEightyOne = (DataField) record.getVariableField("981");
-			    DataField nineFiveTwo = (DataField) record.getVariableField("952"); 
-				
-				String locationName = marcUtils.getLocation(nineFiveTwo);				
-				
 				UUID snapshotId = UUID.randomUUID();
 				UUID recordTableId = UUID.randomUUID();					
 				
-				String poLineUUID = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("id");
-				String poLineNumber = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("poLineNumber");
-				String instanceId = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("instanceId");
-				String title = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("titleOrPackage");
-				String requester = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optString("requester");
-				String internalNote = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optString("description");
-				JSONObject polDetails = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optJSONObject("details");
+				String poLineUUID = poLineObject.getString("id");
+				String poLineNumber = poLineObject.getString("poLineNumber");
+				String instanceId = poLineObject.getString("instanceId");
+				String title = poLineObject.getString("titleOrPackage");
+				String requester = poLineObject.optString("requester");
+				String internalNote = poLineObject.optString("description");
+				JSONObject polDetails = poLineObject.optJSONObject("details");
 				
 				String receivingNote = null;
 				if (polDetails != null) {
@@ -428,9 +401,10 @@ public class OrderImport {
 				ByteArrayOutputStream rawBaos = new ByteArrayOutputStream();
 				MarcWriter writer = new MarcStreamWriter(rawBaos);
 				writer.write(record);
+				// TODO: is this a bug?...nothing was previously written to byteArrayOutputStream
 				JSONObject jsonWithRaw = new JSONObject();
 				jsonWithRaw.put("id", instanceId);
-				jsonWithRaw.put("content",byteArrayOutputStream);
+				jsonWithRaw.put("content", byteArrayOutputStream);
 				
 				//CREATING JOB EXECUTION?
 				//TODO: I'M NOT ENTIRELY SURE IF THIS IS NECESSARY?
@@ -526,15 +500,12 @@ public class OrderImport {
 				instanceAsJson.put("succeedingTitles", new JSONArray());
 				String instanceUpdateResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/instances/" + instanceId,  instanceAsJson, token);
 				
-				//UPDATE THE HOLDINGS RECORD
-				//holdingRecord.put("electronicAccess", eResources);
-		
 				logger.debug("Update holdings record");
 				String createHoldingsResponse = apiService.callApiPut(baseOkapEndpoint + "holdings-storage/holdings/" + holdingRecord.getString("id"), holdingRecord,token);
 				
 				responseMessage.put("instanceHrid", hrid);
 				responseMessage.put("instanceUUID", instanceId);
-				responseMessage.put("location", locationName +" ("+ lookupTable.get(locationName + "-location") +")");				
+				//responseMessage.put("location", locationName +" ("+ lookupTable.get(locationName + "-location") +")");				
 				responseMessages.put(responseMessage);
 				numRec++;
 				
@@ -543,7 +514,7 @@ public class OrderImport {
 				e.printStackTrace();
 				logger.error(e.toString());
 				JSONObject errorMessage = new JSONObject();
-				errorMessage.put("error",e.toString());
+				errorMessage.put("error", e.toString());
 				errorMessage.put("PONumber", poNumberObj.get("poNumber"));
 				errorMessages.put(errorMessage);
 				return errorMessages;
