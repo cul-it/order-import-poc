@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 function sendRequest() {
+	$('#logcontent').empty();
 	$('#sendFile').addClass('is-loading'); 
 	var getUrl = window.location;
 	var uploadUrl = getUrl .protocol + "//" + getUrl.host + "/" + getUrl.pathname.split('/')[1]+"/import/service/upload";    
