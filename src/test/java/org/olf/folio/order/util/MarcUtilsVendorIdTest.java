@@ -16,7 +16,7 @@ import org.marc4j.marc.Record;
  *
  */
 public class MarcUtilsVendorIdTest extends MarcUtilsBaseTest { 
-    boolean debug = true; 
+    boolean debug = false; 
 
     @Test
     public void testGetVendorId() {
