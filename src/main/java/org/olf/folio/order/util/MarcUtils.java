@@ -26,7 +26,7 @@ public class MarcUtils {
 	private final String QUANTITY = "g"; // 980$g
 	private final String FUNDCODE = "h"; // 980$h
 	private final String VENDOR = "v"; // 980$v
-	private final String VENDORID = "c"; // 980$c
+	private final String VENDORID = "i"; // 961$i...formerly 980$c
 	
 	//private final String NOTE = "n"; // 980$n
 	private final String INTERNAL_NOTE = "z"; // 980$z
@@ -99,13 +99,13 @@ public class MarcUtils {
 		return vendorCode;
 	}
 	
-	public String getVendorItemId(DataField nineEighty ) {
-		String vendorItemId= new String();
-		if (nineEighty != null) {
-		    vendorItemId = nineEighty.getSubfieldsAsString(VENDORID);
-		}
-		return vendorItemId;
-	}
+	public String getVendorItemId(DataField nineSixtyOne ) {
+        String vendorItemId= new String();
+        if (nineSixtyOne != null) {
+            vendorItemId = nineSixtyOne.getSubfieldsAsString(VENDORID);
+        }
+        return vendorItemId;
+    }
 	
 	public String getLocation(DataField nineFiveTwo ) {
 		String location = new String();

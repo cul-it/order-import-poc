@@ -179,6 +179,7 @@ public class OrderImport {
 				DataField nineEighty = (DataField) record.getVariableField("980");
 			    DataField nineFiveTwo = (DataField) record.getVariableField("952");
 			    DataField nineEightyOne = (DataField) record.getVariableField("981");
+			    DataField nineSixtyOne = (DataField) record.getVariableField("961");
 			    
 				String title = marcUtils.getTitle(twoFourFive); 
 						 
@@ -190,7 +191,7 @@ public class OrderImport {
 			    if (quantity != null)  quantityNo = Integer.valueOf(quantity);
 			    
 				String price = marcUtils.getPrice(nineEightyOne); 
-				String vendorItemId = marcUtils.getVendorItemId(nineEighty);		    
+				String vendorItemId = marcUtils.getVendorItemId(nineSixtyOne);	    
 			    String locationName = marcUtils.getLocation(nineFiveTwo);
 			    
 			     
@@ -232,15 +233,19 @@ public class OrderImport {
 				locations.put(location);
 				 
 				
-				//VENDOR REFERENCE NUMBER IF INCLUDED IN THE MARC RECORD:
+				// as of IRIS release vendorDetail is slightly more complex
 				if (vendorItemId != null) {
-					JSONObject vendorDetail = new JSONObject();
-					vendorDetail.put("instructions", "");
-					vendorDetail.put("refNumber", vendorItemId);
-					vendorDetail.put("refNumberType", "Internal vendor number");
-					vendorDetail.put("vendorAccount", "");
-					orderLine.put("vendorDetail", vendorDetail);
-				}
+                    JSONArray referenceNumbers = new JSONArray();
+                    JSONObject vendorDetail = new JSONObject();
+                    vendorDetail.put("instructions", "");
+                    vendorDetail.put("vendorAccount", "");
+                    JSONObject referenceNumber = new JSONObject();
+                    referenceNumber.put("refNumber", vendorItemId);
+                    referenceNumber.put("refNumberType", "Vendor internal number");
+                    referenceNumbers.put(referenceNumber);
+                    vendorDetail.put("referenceNumbers", referenceNumbers);
+                    orderLine.put("vendorDetail", vendorDetail);
+                }
 				
 				UUID orderLineUUID = UUID.randomUUID();
 				orderLine.put("id", orderLineUUID);
