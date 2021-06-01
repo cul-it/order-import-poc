@@ -16,11 +16,11 @@ import org.marc4j.marc.Record;
  *
  */
 public class MarcUtilsVendorIdTest extends MarcUtilsBaseTest { 
-    boolean debug = false; 
+    boolean debug = true; 
 
     @Test
     public void testGetVendorId() {
-        String fname = this.singleharrass;
+        String fname = this.harrass;
         try {
             List<Record> records = getRecords(fname);
             for (Record record : records) {

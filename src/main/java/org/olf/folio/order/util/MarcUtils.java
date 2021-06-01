@@ -103,6 +103,8 @@ public class MarcUtils {
         String vendorItemId= new String();
         if (nineSixtyOne != null) {
             vendorItemId = nineSixtyOne.getSubfieldsAsString(VENDORID);
+        } else {
+            return null;
         }
         return vendorItemId;
     }
