@@ -237,8 +237,6 @@ public class OrderImport {
 				if (StringUtils.isNotEmpty(vendorItemId)) {
                     JSONArray referenceNumbers = new JSONArray();
                     JSONObject vendorDetail = new JSONObject();
-                    vendorDetail.put("instructions", "");
-                    vendorDetail.put("vendorAccount", "");
                     JSONObject referenceNumber = new JSONObject();
                     referenceNumber.put("refNumber", vendorItemId);
                     referenceNumber.put("refNumberType", "Vendor internal number");
