@@ -234,7 +234,7 @@ public class OrderImport {
 				 
 				
 				// as of IRIS release vendorDetail is slightly more complex
-				if (vendorItemId != null) {
+				if (StringUtils.isNotEmpty(vendorItemId)) {
                     JSONArray referenceNumbers = new JSONArray();
                     JSONObject vendorDetail = new JSONObject();
                     vendorDetail.put("instructions", "");
