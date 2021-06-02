@@ -50,7 +50,8 @@ public class OrderImport {
 	MarcUtils marcUtils = new MarcUtils();
 	
 	public  JSONArray  upload(String fileName) throws IOException, InterruptedException, Exception {
-
+	    long start = 0L; // to be used for timing
+        long end = 0L;  // to be used for timing
 		logger.debug("...starting...");
 		JSONArray responseMessages = new JSONArray();
 		JSONArray errorMessages = new JSONArray();
@@ -166,13 +167,13 @@ public class OrderImport {
 		JSONArray poLines = new JSONArray();
 		
 		// iterator over records in the marc file.
-	    Record record = null;
+	     
 		logger.debug("reading marc file");
 		int numRec = 0; 
 		
 		while (reader.hasNext()) {
 			try {
-				record = reader.next();
+				Record record = reader.next();
 				//logger.debug(record.toString());				
 				 
 				DataField twoFourFive = (DataField) record.getVariableField("245");
@@ -237,6 +238,8 @@ public class OrderImport {
 				if (StringUtils.isNotEmpty(vendorItemId)) {
                     JSONArray referenceNumbers = new JSONArray();
                     JSONObject vendorDetail = new JSONObject();
+                    vendorDetail.put("instructions", ""); // required element, even if empty
+                    vendorDetail.put("vendorAccount", ""); // required element, even if empty
                     JSONObject referenceNumber = new JSONObject();
                     referenceNumber.put("refNumber", vendorItemId);
                     referenceNumber.put("refNumberType", "Vendor internal number");
@@ -329,26 +332,28 @@ public class OrderImport {
 		logger.info("updated purchase order...");
 		logger.info(updatedPurchaseOrderJson.toString(3));
 		
-		// read the poLines from the updated purchace order because the API does not necessarily create poLines
-        // in the same order as the were put into the posted PO
-        Iterator<Object> poLineIterator = updatedPurchaseOrderJson.getJSONArray("compositePoLines").iterator();		
-			
-        while (poLineIterator.hasNext()) {
-            JSONObject poLineObject = (JSONObject) poLineIterator.next();
-			try {				
+		// read through again.
+        FileInputStream in2 = new FileInputStream(filePath + fileName);
+        MarcReader reader2 = new MarcStreamReader(in2);
+        numRec = 0;         
+        start = System.currentTimeMillis(); 
+        while (reader2.hasNext()) {
+             
+			try {
+			    Record record = reader2.next();
 				JSONObject responseMessage = new JSONObject();
 				responseMessage.put("poNumber", poNumberObj.get("poNumber"));
 				responseMessage.put("poUUID", orderUUID.toString());
 				UUID snapshotId = UUID.randomUUID();
 				UUID recordTableId = UUID.randomUUID();					
 				
-				String poLineUUID = poLineObject.getString("id");
-				String poLineNumber = poLineObject.getString("poLineNumber");
-				String instanceId = poLineObject.getString("instanceId");
-				String title = poLineObject.getString("titleOrPackage");
-				String requester = poLineObject.optString("requester");
-				String internalNote = poLineObject.optString("description");
-				JSONObject polDetails = poLineObject.optJSONObject("details");
+				String poLineUUID = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("id");
+                String poLineNumber = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("poLineNumber");
+                String instanceId = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("instanceId");
+                String title = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).getString("titleOrPackage");
+                String requester = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optString("requester");
+                String internalNote = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optString("description");
+                JSONObject polDetails = updatedPurchaseOrderJson.getJSONArray("compositePoLines").getJSONObject(numRec).optJSONObject("details");
 				
 				String receivingNote = null;
 				if (polDetails != null) {
@@ -424,7 +429,7 @@ public class OrderImport {
 				JSONObject sourceRecordStorageObject = new JSONObject();
 				sourceRecordStorageObject.put("recordType", "MARC");
 				sourceRecordStorageObject.put("snapshotId", snapshotId.toString());
-				sourceRecordStorageObject.put("matchedId", instanceId.toString());
+				sourceRecordStorageObject.put("matchedId", instanceId.toString()); // TODO: this should be recordTableId.toString()
 				
 				//LINK THE INSTANCE TO SOURCE RECORD STORAGE
 				JSONObject externalId = new JSONObject();
@@ -522,6 +527,7 @@ public class OrderImport {
 				errorMessages.put(errorMessage);
 				return errorMessages;
 			}
+			
 		}
 
 		logger.debug("Number of records: "+ numRec);
