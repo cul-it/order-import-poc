@@ -23,7 +23,7 @@ public class MarcUtilsIsbnTest extends MarcUtilsBaseTest {
     public void testGetIsbn() {
          
         List<String> myFnames = new ArrayList<String>();
-        myFnames.add(this.harrass);
+        myFnames.add(this.harrassowitz);
         
         try {
             for (String fname : myFnames) {
