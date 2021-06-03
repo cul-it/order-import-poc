@@ -185,7 +185,7 @@ public class MarcUtils {
 	}
 	
 	/**
-	 * Get an array of productIds that contain ISBN values
+	 * Get an array of productIds that contain ISBN values.
 	 * @param record
 	 * @param isbnType
 	 * @return
@@ -205,9 +205,13 @@ public class MarcUtils {
                     if (df.getSubfield('q') != null) {
                         fullValue += " " + df.getSubfieldsAsString("q");
                     }
-                    
-                    productId.put("productId",fullValue);
+                    String isbn = StringUtils.substringBefore(fullValue, " ");
+                    String qualifier = StringUtils.substringAfter(fullValue, " ");
+                    productId.put("productId", isbn);
                     productId.put("productIdType", isbnType);
+                    if (StringUtils.isNotEmpty(qualifier)) {
+                        productId.put("qualifier", qualifier);
+                    }
                     productIds.put(productId);
                
                 } 
