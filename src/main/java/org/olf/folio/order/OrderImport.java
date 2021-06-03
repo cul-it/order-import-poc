@@ -486,33 +486,6 @@ public class OrderImport {
 				JSONObject holdingsAsJson = new JSONObject(holdingResponse);
 				JSONObject holdingRecord = holdingsAsJson.getJSONArray("holdingsRecords").getJSONObject(0);
 				
-				// TODO: Do we need to include 856 fields now?
-				//JSONArray eResources = new JSONArray();
-				//String linkText = (String) getMyContext().getAttribute("textForElectronicResources");
-				
-				// TODO: clean this up...
-				//logger.debug("Add 856 fields");
-				//List urls =  record.getVariableFields("856");
-				//Iterator<DataField> iterator = urls.iterator();
-				//while (iterator.hasNext()) {
-				//	DataField dataField = (DataField) iterator.next();
-				//	if (dataField != null && dataField.getSubfield('u') != null) {
-				//		String url = dataField.getSubfield('u').getData();
-				//		if (dataField.getSubfield('z') != null) {
-				//			linkText = dataField.getSubfield('z').getData();
-				//		}
-				//		JSONObject eResource = new JSONObject();
-				//		eResource.put("uri", dataField.getSubfield('u').getData());
-				//		//TODO - DO WE WANT TO CHANGE THE LINK TEXT?
-				//		eResource.put("linkText", linkText);
-						//I 'THINK' THESE RELATIONSHIP TYPES ARE HARDCODED INTO FOLIO
-						//CANT BE LOOKED UP WITH AN API?
-						//https://github.com/folio-org/mod-inventory-storage/blob/master/reference-data/electronic-access-relationships/resource.json
-				//		eResource.put("relationshipId", "f5d0068e-6272-458e-8a81-b85e7b9a14aa");
-				//		eResources.put(eResource);
-				//	}
-				//}
-				
 				//UPDATE THE INSTANCE RECORD
 				logger.debug("Update Instance Record");
 				//instanceAsJson.put("electronicAccess", eResources);
