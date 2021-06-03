@@ -33,6 +33,7 @@ public class MarcUtilsBaseTest {
     protected String bksFO;
 
     MarcUtils marcUtils = new MarcUtils();
+    List<String> fnames = new ArrayList<String>();
 
     public MarcUtilsBaseTest() {
         init();
@@ -43,8 +44,18 @@ public class MarcUtilsBaseTest {
         this.coutts = this.buildDir + "/marc-test-files/CouttsUKFO.1.mrc";
         this.requestors = this.buildDir + "/marc-test-files/requesters_5-records_2021-03-11.mrc";
         this.singleharrass = this.buildDir + "/marc-test-files/singleharrass.mrc";
-        this.harrassowitz = this.buildDir + "/marc-test-files/harrasowitz_9-records_2021-03-10.mrc";
-        this.bksFO = this.buildDir + "/marc-test-files/w.j.bksFO.mrc";
+        this.harrassowitz = this.buildDir + "/marc-test-files/harrassowitz_9-records_2021-03-10.mrc";
+        this.bksFO = this.buildDir + "/marc-test-files/w.j.bksFO.1.mrc";
+        
+        fnames.add(this.harrass);
+        fnames.add(this.casalini);
+        fnames.add(this.physical);
+        fnames.add(this.amazonFO);
+        fnames.add(this.coutts);
+        fnames.add(this.requestors);
+        fnames.add(this.singleharrass);
+        fnames.add(this.harrassowitz);
+        fnames.add(this.bksFO);
     }
 
     public List<Record> getRecords(String fname) throws Exception {
@@ -66,7 +77,6 @@ public class MarcUtilsBaseTest {
         String use_env = System.getenv("USE_SYSTEM_ENV");
         if (StringUtils.isNotEmpty(use_env) && StringUtils.equals(use_env, "true")) {
             config.setProperty("buildDir", System.getenv("buildDir"));
-
         } else {
             try {
                 props.load(ClassLoader.getSystemResourceAsStream("application.properties"));
