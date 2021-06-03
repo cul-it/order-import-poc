@@ -420,12 +420,21 @@ public class MarcToJson {
                     orderLine.put("description", internalNotes);
                 }
                 
+                // add a detailsObject if a receiving note or ISBN identifiers are found
+                JSONObject detailsObject = new JSONObject();
                 // get the "receiving note"
                 String receivingNote =  marcUtils.getReceivingNote(nineEightyOne);
                 if (StringUtils.isNotEmpty(receivingNote)) {
-                    JSONObject detailsObject = new JSONObject();
                     detailsObject.put("receivingNote", receivingNote);
-                    orderLine.put("details", detailsObject);
+                }
+                // get ISBN values in a productIds array and add to detailsObject if not empty
+                JSONArray productIds = marcUtils.getISBN(record, lookupTable.get("ISBN"));
+                if (productIds.length() > 0) {
+                    detailsObject.put("productIds", productIds);
+                }
+                
+                if (! detailsObject.isEmpty()) {
+                    orderLine.put("details", detailsObject);   
                 }
                 
                 // get rush value

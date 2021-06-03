@@ -11,6 +11,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.marc4j.marc.DataField;
 import org.marc4j.marc.Record;
+import org.marc4j.marc.Subfield;
 import org.marc4j.marc.VariableField;
 
 public class MarcUtils {
@@ -182,6 +183,39 @@ public class MarcUtils {
 		}
 		return electronicIndicator;
 	}
+	
+	/**
+	 * Get an array of productIds that contain ISBN values
+	 * @param record
+	 * @param isbnType
+	 * @return
+	 */
+	public JSONArray getISBN(Record record, String isbnType) {
+        JSONArray productIds = new JSONArray();
+        DataField df = (DataField) record.getVariableField("020");
+        if (df != null) {
+            List<Subfield> subfields =  df.getSubfields();
+            for (Subfield subfield: subfields) {
+                if (subfield.getCode() == 'a') {
+                    JSONObject productId = new JSONObject();
+                    String fullValue = subfield.getData();
+                    if (df.getSubfield('c') != null) {
+                        fullValue += " "  + df.getSubfieldsAsString("c");
+                    }
+                    if (df.getSubfield('q') != null) {
+                        fullValue += " " + df.getSubfieldsAsString("q");
+                    }
+                    
+                    productId.put("productId",fullValue);
+                    productId.put("productIdType", isbnType);
+                    productIds.put(productId);
+               
+                } 
+            }
+            
+        }
+        return productIds;
+    }
 	
 	public JSONArray getLinks(Record record) {
 		JSONArray eResources = new JSONArray();

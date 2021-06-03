@@ -106,7 +106,8 @@ public class OrderImport {
 	   	JSONArray validateRequiredResult = validateRequiredValues(reader, token, baseOkapEndpoint);
 	   	if (!validateRequiredResult.isEmpty()) return validateRequiredResult;
 	   	
-		//SAVE REFERENCE TABLE VALUES (JUST LOOKUP THEM UP ONCE)
+		// SAVE REFERENCE TABLE VALUES (JUST LOOKUP THEM UP ONCE)
+	   	// TODO: move the creation of the lookupTable to the OrderController
 	   	logger.debug("Get Lookup table");
 		if (myContext.getAttribute(Constants.LOOKUP_TABLE) == null) {
 			 LookupUtil lookupUtil = new LookupUtil();
@@ -118,15 +119,13 @@ public class OrderImport {
 			 this.billingMap = lookupUtil.getBillingAddresses(billingEndpoint, token);
 			 myContext.setAttribute(Constants.LOOKUP_TABLE, lookupTable);
 			 myContext.setAttribute(Constants.BILLINGMAP, billingMap);
-			 
-			 
 			 logger.debug("put lookup table in context");
 		} else {
 			 this.lookupTable = (HashMap<String, String>) myContext.getAttribute(Constants.LOOKUP_TABLE);
 			 this.billingMap = (HashMap<String, String>) myContext.getAttribute(Constants.BILLINGMAP);
 			 logger.debug("got lookup table from context");
 		}
-		
+		String ISBNId = this.lookupTable.get("ISBN");
 		
 		
 		// READ THE MARC RECORD FROM THE FILE
@@ -143,6 +142,7 @@ public class OrderImport {
 		// GENERATE UUID for the PO
 	   
 	    UUID orderUUID = UUID.randomUUID();
+	    String vendorCode = new String();
 	    
 	    //GET THE NEXT PO NUMBER 
 		logger.trace("get next PO number");
@@ -181,10 +181,10 @@ public class OrderImport {
 			    DataField nineEightyOne = (DataField) record.getVariableField("981");
 			    DataField nineSixtyOne = (DataField) record.getVariableField("961");
 			    
-				String title = marcUtils.getTitle(twoFourFive); 
-						 
+				String title = marcUtils.getTitle(twoFourFive);
 				String fundCode = marcUtils.getFundCode(nineEighty);
-				String vendorCode =  marcUtils.getVendorCode(nineEighty);
+				// vendor code instantiated outside of loop because it will be the same for all orderLines and added to response later
+				vendorCode =  marcUtils.getVendorCode(nineEighty);
 				    
 				String quantity =  marcUtils.getQuantity(nineEighty);
 				Integer quantityNo = 0; //INIT
@@ -201,20 +201,10 @@ public class OrderImport {
 				String orgLookupResponse = this.apiService.callApiGet(organizationEndpoint,  token);
 				JSONObject orgObject = new JSONObject(orgLookupResponse);
 				String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
+				order.put("vendor", vendorId);				 
 				
-				//LOOK UP THE FUND
-				//logger.debug("lookup Fund");
-				String fundEndpoint = baseOkapEndpoint + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
-				String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
-				JSONObject fundsObject = new JSONObject(fundResponse);
-				String fundId = (String) fundsObject.getJSONArray("funds").getJSONObject(0).get("id");				
-				
-				// CREATING THE PURCHASE ORDER				
-				
-				order.put("vendor", vendorId);				
-				
-				// POST ORDER LINE
-				//FOLIO WILL CREATE THE INSTANCE, HOLDINGS, ITEM (IF PHYSICAL ITEM)
+				// Create an OrderLine
+				// FOLIO WILL CREATE THE INSTANCE, HOLDINGS, ITEM (IF PHYSICAL ITEM)
 				JSONObject orderLine = new JSONObject();
 				JSONObject cost = new JSONObject();
 				JSONObject location = new JSONObject();
@@ -260,12 +250,21 @@ public class OrderImport {
 				    orderLine.put("description", internalNotes);
 				}
 				
-				// get the "receiving note"
+				// add a detailsObject if a receiving note or ISBN identifiers are found
+                JSONObject detailsObject = new JSONObject();
+                
+                // get the "receiving note"
                 String receivingNote =  marcUtils.getReceivingNote(nineEightyOne);
                 if (StringUtils.isNotEmpty(receivingNote)) {
-                    JSONObject detailsObject = new JSONObject();
                     detailsObject.put("receivingNote", receivingNote);
-                    orderLine.put("details", detailsObject);
+                }
+                // get ISBN values in a productIds array and add to detailsObject if not empty
+                JSONArray productIds = marcUtils.getISBN(record, lookupTable.get("ISBN"));
+                if (productIds.length() > 0) {
+                    detailsObject.put("productIds", productIds);
+                }                
+                if (! detailsObject.isEmpty()) {
+                    orderLine.put("details", detailsObject);   
                 }
 				
 				// get rush value
@@ -287,16 +286,19 @@ public class OrderImport {
 					orderLine.put("requester", requester);
 				}
 				
-				
-				// add fund distribution info
+				// LOOK UP THE FUND and add info to orderLine
+                //logger.debug("lookup Fund");
+                String fundEndpoint = baseOkapEndpoint + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
+                String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
+                JSONObject fundsObject = new JSONObject(fundResponse);
+                String fundId = (String) fundsObject.getJSONArray("funds").getJSONObject(0).get("id");
 				JSONArray funds = new JSONArray();
 				JSONObject fundDist = new JSONObject();
 				fundDist.put("distributionType", "percentage");
 				fundDist.put("value", 100);
 				fundDist.put("fundId", fundId);
 				funds.put(fundDist);
-				orderLine.put("fundDistribution", funds);
-				
+				orderLine.put("fundDistribution", funds);				
 
 				orderLine.put("purchaseOrderId", orderUUID.toString());
 				poLines.put(orderLine);
@@ -361,6 +363,7 @@ public class OrderImport {
 				responseMessage.put("requester", requester);
 				responseMessage.put("internalNote", internalNote);
 				responseMessage.put("receivingNote", receivingNote);
+				responseMessage.put("vendorCode",vendorCode);
 				
 				//GET THE INSTANCE RECORD FOLIO CREATED, SO WE CAN ADD BIB INFO TO IT:
 				logger.debug("get InstanceResponse");
@@ -453,6 +456,16 @@ public class OrderImport {
 				//SO THE OPTION TO VIEW THE MARC RECORD SHOWS UP 
 				//IN INVENTORY!
 				JSONArray identifiers = buildIdentifiers(record, lookupTable);
+				// copy any ISBN identifiers to the response
+				Iterator identIter = identifiers.iterator();
+                while (identIter.hasNext()) {
+                    JSONObject identifierObj = (JSONObject) identIter.next();
+                    String identifierType = identifierObj.getString("identifierTypeId");
+                    if (identifierType.equals(ISBNId)) {
+                        responseMessage.put("isbn", identifierObj.get("value"));
+                        break;
+                    }
+                }
 				JSONArray contributors = buildContributors(record, lookupTable);
 				
 				instanceAsJson.put("title", title);
