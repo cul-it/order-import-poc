@@ -3,6 +3,8 @@ package org.olf.folio.order.util;
  
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -184,42 +186,7 @@ public class MarcUtils {
 		return electronicIndicator;
 	}
 	
-	/**
-	 * Get an array of productIds that contain ISBN values.
-	 * @param record
-	 * @param isbnType
-	 * @return
-	 */
-	public JSONArray getISBN(Record record, String isbnType) {
-        JSONArray productIds = new JSONArray();
-        DataField df = (DataField) record.getVariableField("020");
-        if (df != null) {
-            List<Subfield> subfields =  df.getSubfields();
-            for (Subfield subfield: subfields) {
-                if (subfield.getCode() == 'a') {
-                    JSONObject productId = new JSONObject();
-                    String fullValue = subfield.getData();
-                    if (df.getSubfield('c') != null) {
-                        fullValue += " "  + df.getSubfieldsAsString("c");
-                    }
-                    if (df.getSubfield('q') != null) {
-                        fullValue += " " + df.getSubfieldsAsString("q");
-                    }
-                    String isbn = StringUtils.substringBefore(fullValue, " ");
-                    String qualifier = StringUtils.substringAfter(fullValue, " ");
-                    productId.put("productId", isbn);
-                    productId.put("productIdType", isbnType);
-                    if (StringUtils.isNotEmpty(qualifier)) {
-                        productId.put("qualifier", qualifier);
-                    }
-                    productIds.put(productId);
-               
-                } 
-            }
-            
-        }
-        return productIds;
-    }
+	
 	
 	public JSONArray getLinks(Record record) {
 		JSONArray eResources = new JSONArray();
@@ -249,6 +216,133 @@ public class MarcUtils {
 		
 	}
 	
+	//TODO - FIX THESE METHODS THAT GATHER DETAILS FROM THE MARC RECORD.
+    //THEY WERE HURRILY CODED
+    //JUST WANTED TO GET SOME DATA IN THE INSTANCE
+    //FROM THE MARC RECORD FOR THIS POC
+    public JSONArray buildContributors(Record record, HashMap<String,String> lookupTable) {
+        JSONArray contributors = new JSONArray();
+        String[] subfields = {"a","b","c","d","f","g","j","k","l","n","p","t","u"};
+        
+        List<DataField> fields = record.getDataFields();
+        Iterator<DataField> fieldsIterator = fields.iterator();
+        while (fieldsIterator.hasNext()) {
+            DataField field = (DataField) fieldsIterator.next();
+            if (field.getTag().equalsIgnoreCase("100") || field.getTag().equalsIgnoreCase("700")) {
+                contributors.put(makeContributor(field,lookupTable, "Personal name", subfields));
+            }
+        }
+        return contributors;
+    }
+    
+    public JSONObject makeContributor( DataField field, HashMap<String,String> lookupTable, String name_type_id, String[] subfieldArray) {
+        List<String> list = Arrays.asList(subfieldArray);
+        JSONObject contributor = new JSONObject();
+        contributor.put("name", "");
+        contributor.put("contributorNameTypeId", lookupTable.get(name_type_id));
+        List<Subfield> subfields =  field.getSubfields();
+        Iterator<Subfield> subfieldIterator = subfields.iterator();
+        String contributorName = "";
+        while (subfieldIterator.hasNext()) {
+            Subfield subfield = (Subfield) subfieldIterator.next();
+            String subfieldAsString = String.valueOf(subfield.getCode());  
+            if (subfield.getCode() == '4') {
+                if (lookupTable.get(subfield.getData()) != null) {
+                    contributor.put("contributorTypeId", lookupTable.get(subfield.getData()));
+                }
+                else {
+                    contributor.put("contributorTypeId", lookupTable.get("bkp"));
+                }
+            }
+            else if (subfield.getCode() == 'e') {
+                contributor.put("contributorTypeText", subfield.getData());
+            }
+            else if (list.contains(subfieldAsString)) {
+                if (!contributorName.isEmpty()) {
+                    contributorName += ", " + subfield.getData();
+                }
+                else {
+                    contributorName +=  subfield.getData();
+                }
+            }
+            
+        }
+        contributor.put("name", contributorName);
+        return contributor;
+    }
+    
+   
+   public JSONArray buildIdentifiers(Record record, HashMap<String, String> lookupTable) {
+        JSONArray identifiers = new JSONArray();
+        
+        List<DataField> fields = record.getDataFields();
+        Iterator<DataField> fieldsIterator = fields.iterator();
+        while (fieldsIterator.hasNext()) {
+            DataField field = (DataField) fieldsIterator.next(); 
+            List<Subfield> subfields =  field.getSubfields();
+            Iterator<Subfield> subfieldIterator = subfields.iterator();
+            while (subfieldIterator.hasNext()) {
+                Subfield subfield = (Subfield) subfieldIterator.next();
+                if (field.getTag().equalsIgnoreCase("020")) {
+                    if (subfield.getCode() == 'a') {
+                        JSONObject identifier = new JSONObject();
+                        String fullValue = subfield.getData();
+                        if (field.getSubfield('c') != null) fullValue += " "  + field.getSubfieldsAsString("c");
+                        if (field.getSubfield('q') != null) fullValue += " " + field.getSubfieldsAsString("q");
+                        identifier.put("value",fullValue);
+                        
+                        identifier.put("identifierTypeId", lookupTable.get("ISBN"));
+                        identifiers.put(identifier);
+                    }
+                    if (subfield.getCode() == 'z') {
+                        JSONObject identifier = new JSONObject();
+                        String fullValue = subfield.getData();
+                        if (field.getSubfield('c') != null) fullValue += " " + field.getSubfieldsAsString("c");
+                        if (field.getSubfield('q') != null) fullValue += " " + field.getSubfieldsAsString("q");
+                        identifier.put("value", fullValue);
+                        identifier.put("identifierTypeId", lookupTable.get("Invalid ISBN"));
+                        identifiers.put(identifier);
+                    }
+                }
+                if (field.getTag().equalsIgnoreCase("022")) {
+                    if (subfield.getCode() == 'a') {
+                        JSONObject identifier = new JSONObject();
+                        String fullValue = subfield.getData();
+                        if (field.getSubfield('c') != null) fullValue += " " + field.getSubfieldsAsString("c");
+                        if (field.getSubfield('q') != null) fullValue += " " + field.getSubfieldsAsString("q");
+                        identifier.put("value",fullValue);
+                        
+                        identifier.put("identifierTypeId", lookupTable.get("ISSN"));
+                        identifiers.put(identifier);
+                    } else if (subfield.getCode() == 'l') {
+                        JSONObject identifier = new JSONObject();
+                        String fullValue = subfield.getData();
+                        if (field.getSubfield('c') != null) fullValue += " " + field.getSubfieldsAsString("c");
+                        if (field.getSubfield('q') != null) fullValue += " " + field.getSubfieldsAsString("q");
+                        identifier.put("value", fullValue);
+                        identifier.put("identifierTypeId", lookupTable.get("Linking ISSN"));
+                        identifiers.put(identifier);
+                    } else {
+                        JSONObject identifier = new JSONObject();
+                        String fullValue = "";
+                        if (field.getSubfield('z') != null) fullValue += field.getSubfieldsAsString("z");
+                        if (field.getSubfield('y') != null) fullValue += " " +  field.getSubfieldsAsString("y");
+                        if (field.getSubfield('m') != null) fullValue += " " + field.getSubfieldsAsString("m");
+                        if (fullValue != "") {
+                            identifier.put("value", fullValue);
+                            identifier.put("identifierTypeId", lookupTable.get("Invalid ISSN"));
+                            identifiers.put(identifier);
+                        }
+                    }
+                }
+                
+                
+            }
+            
+        }
+        return identifiers; 
+    } 
+	
 	public String normalizePrice(String priceStr) {
 	    try {
 	       double f = Double.parseDouble(priceStr);
@@ -256,7 +350,6 @@ public class MarcUtils {
 	    } catch (NumberFormatException e) {
 	        return "0.00";
 	    }
-	}
-	
+	}	
 
 }
