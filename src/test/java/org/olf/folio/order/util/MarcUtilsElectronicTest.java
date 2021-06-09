@@ -10,7 +10,7 @@ import org.marc4j.marc.Record;
 
 public class MarcUtilsElectronicTest extends MarcUtilsBaseTest { 
 	 
-    boolean debug = true;
+    boolean debug = false;
     
 	@Test
 	public void testGetElectronic() {

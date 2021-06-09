@@ -17,7 +17,7 @@ import org.marc4j.marc.Record;
  */
 public class MarcUtilsPriceTest extends MarcUtilsBaseTest { 
     
-    boolean debug = true;
+    boolean debug = false;
 
     /**
      * 

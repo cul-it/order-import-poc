@@ -23,18 +23,21 @@ public class LookupUtilIdentifiersTest extends LookupUtilBaseTest {
 	 
 	@Test
 	public void getIdentifiersTest() { 
-		this.getUtil().setEndPoint("identifier-types", "1000");
+		this.getUtil().setEndPoint("identifier-types", "10000");
 		Map<String,String> map = new HashMap<String, String>();
 		try { 
 			map = this.getUtil().getReferenceValues(this.getToken());
 			if (debug) {
-				Iterator iter = map.keySet().iterator();
+				//Iterator iter = map.keySet().iterator();
 				
-				while (iter.hasNext()) {
-					String key = (String) iter.next();
-					System.out.println("name: "+ key);
-					System.out.println("id: "+ map.get(key));
-				}
+				//while (iter.hasNext()) {
+				//	String key = (String) iter.next();
+				//	System.out.println("name: "+ key);
+				//	System.out.println("id: "+ map.get(key));
+				//}
+				
+				System.out.println(("ISBN: "+ map.get("ISBN")));
+				System.out.println("Invalid ISBN: "+ map.get("Invalid ISBN"));
 			} else {
 				String testKey = "ISBN";
 				assertNotNull(map);

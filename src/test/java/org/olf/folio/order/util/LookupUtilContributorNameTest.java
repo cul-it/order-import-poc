@@ -30,13 +30,14 @@ public class LookupUtilContributorNameTest extends LookupUtilBaseTest {
 		try { 
 			map = this.getUtil().getReferenceValues(this.getToken());
 			if (debug) {
-				Iterator iter = map.keySet().iterator();
+				//Iterator iter = map.keySet().iterator();
 				
-				while (iter.hasNext()) {
-					String key = (String) iter.next();
-					System.out.println("name: "+ key);
-					System.out.println("id: "+ map.get(key));
-				}
+				//while (iter.hasNext()) {
+				//	String key = (String) iter.next();
+				//	System.out.println("name: "+ key);
+				//	System.out.println("id: "+ map.get(key));
+				//}
+				System.out.println("Personal name: "+ map.get("Personal name"));
 			} else {
 				String testKey = "Personal name";
 				assertNotNull(map);
