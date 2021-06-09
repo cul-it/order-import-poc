@@ -273,6 +273,14 @@ public class MarcToJson {
     public JSONArray run() throws Exception {          
  
         String materialTypeName = "Book";
+        String ISBNId = this.lookupTable.get("ISBN");
+        String invalidISBN = this.lookupTable.get("Invalid ISBN");
+        String personalNameTypeId = this.lookupTable.get("Personal name");
+        
+        logger.info("Personal name: "+ personalNameTypeId);
+        logger.info("ISBN: "+ ISBNId);
+        logger.info("Invalid ISBN: "+ invalidISBN);
+        
         JSONArray responseMessages = new JSONArray();        
         JSONArray errorMessages = new JSONArray();
         // GENERATE UUID for the PO 
@@ -427,14 +435,52 @@ public class MarcToJson {
                 if (StringUtils.isNotEmpty(receivingNote)) {
                     detailsObject.put("receivingNote", receivingNote);
                 }
-                // get ISBN values in a productIds array and add to detailsObject if not empty
-                JSONArray productIds = marcUtils.getISBN(record, lookupTable.get("ISBN"));
-                if (productIds.length() > 0) {
-                    detailsObject.put("productIds", productIds);
-                }
                 
+                // get ISBN values in a productIds array and add to detailsObject if not empty
+                //JSONArray productIds = marcUtils.getISBN(record, ISBNId, invalidISBN);
+                JSONArray productIds = new JSONArray();
+                JSONArray identifiers = marcUtils.buildIdentifiers(record, lookupTable);
+                Iterator identIter = identifiers.iterator();
+                while (identIter.hasNext()) {
+                    JSONObject identifierObj = (JSONObject) identIter.next();
+                    String identifierType = identifierObj.getString("identifierTypeId");
+                    String oldVal = identifierObj.getString("value");
+                    //if (identifierType.equals(ISBNId)) {
+                        JSONObject productId = new JSONObject();
+                        String newVal = StringUtils.substringBefore(oldVal, " ");
+                        String qualifier = StringUtils.substringAfter(oldVal, " ");
+                        productId.put("productId", newVal);
+                        productId.put("productIdType", identifierType);
+                        if (StringUtils.isNotEmpty(qualifier)) {
+                            productId.put("qualifier", qualifier);
+                        }
+                        productIds.put(productId);
+                   //}
+                    
+                }
+                if (productIds.length() > 0) {
+                    logger.info(productIds.toString(3));
+                    detailsObject.put("productIds", productIds);
+                }                  
                 if (! detailsObject.isEmpty()) {
                     orderLine.put("details", detailsObject);   
+                }
+                
+                // add contributors
+                JSONArray contribArray = new JSONArray();
+                 
+                JSONArray contributors = marcUtils.buildContributors(record, lookupTable);
+                Iterator contribIter = contributors.iterator();
+                while (contribIter.hasNext()) {
+                    JSONObject contribObj = (JSONObject) contribIter.next();
+                    JSONObject contribCopyObj = new JSONObject();
+                    contribCopyObj.put("contributorNameTypeId", personalNameTypeId);
+                    contribCopyObj.put("contributor", contribObj.get("name"));
+                    contribArray.put(contribCopyObj);
+                }
+                if (contribArray.length() > 0) {
+                    orderLine.put("contributors", contribArray);
+                    logger.debug(contribArray.toString(3));
                 }
                 
                 // get rush value
