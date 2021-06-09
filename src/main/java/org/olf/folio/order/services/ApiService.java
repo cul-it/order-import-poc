@@ -55,6 +55,7 @@ public class ApiService {
 
 		if (responseCode > 399) {
 			logger.error("Failed GET");
+			logger.error(responseString);
 			throw new Exception(responseString);
 		}
 		return responseString;
@@ -92,6 +93,7 @@ public class ApiService {
 
 		if (responseCode > 399) {
 			logger.error("Failed POST");
+			logger.error(responseString);
 			throw new Exception(responseString);
 		}
 
@@ -105,11 +107,11 @@ public class ApiService {
 		HttpUriRequest request = RequestBuilder.put()
 				.setUri(url)
 				.setCharset(Charset.defaultCharset())
-				.setEntity(new StringEntity(body.toString(),"UTF8"))
+				.setEntity(new StringEntity(body.toString(), "UTF8"))
 				.setHeader("x-okapi-tenant", this.tenant)
 				.setHeader("x-okapi-token", token)
 				.setHeader("Accept", "application/json")
-				.setHeader("Content-type","application/json")
+				.setHeader("Content-type", "application/json")
 				.build();
 		
 		//TODO
@@ -118,7 +120,7 @@ public class ApiService {
 		//THE OTHER API CALL THAT USES PUT,
 		//WANTS 'APPLICATION/JSON'
 		if (url.contains("orders-storage") || url.contains("holdings-storage")) {
-			request.setHeader("Accept","text/plain");
+			request.setHeader("Accept", "text/plain");
 		}
 		HttpResponse response = client.execute(request);
 		int responseCode = response.getStatusLine().getStatusCode();
@@ -130,6 +132,9 @@ public class ApiService {
 
 		if (responseCode > 399) {
 			logger.error("Failed PUT");
+			logger.error("BODY");
+			logger.error(body.toString(3));
+			logger.error(response);
 			throw new Exception("Response: " + responseCode);
 		}
 		return "ok";
