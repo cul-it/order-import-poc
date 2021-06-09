@@ -289,7 +289,6 @@ public class OrderImport {
                     productIds.put(productId); 
                     
                 }
-                // TODO: Fix but that causes 422 response if productIds are addet to details in poLine
                 if (productIds.length() > 0) {
                     logger.debug(productIds.toString(3));
                     detailsObject.put("productIds", productIds);
