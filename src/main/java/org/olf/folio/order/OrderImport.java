@@ -374,7 +374,6 @@ public class OrderImport {
 		//POST THE ORDER AND LINE:
 		String orderResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "orders/composite-orders", order, token);  
 		 
-		// get the updated order
 		
 		//GET THE UPDATED PURCHASE ORDER FROM THE API AND PULL OUT THE ID FOR THE INSTANCE FOLIO CREATED:
 		logger.debug("getUpdatedPurchaseOrder");
