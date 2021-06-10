@@ -481,8 +481,6 @@ public class OrderImport {
 				JSONObject sourceRecordStorageObject = new JSONObject();
 				sourceRecordStorageObject.put("recordType", "MARC");
 				sourceRecordStorageObject.put("snapshotId", snapshotId.toString());
-				// TODO: this should be recordTableId.toString()
-				//sourceRecordStorageObject.put("matchedId", instanceId.toString()); 
 				sourceRecordStorageObject.put("matchedId", recordTableId.toString());
 				
 				//LINK THE INSTANCE TO SOURCE RECORD STORAGE
