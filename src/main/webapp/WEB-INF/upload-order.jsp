@@ -271,7 +271,7 @@ function showname() {
 
 <script id="orderTemplate" type="text/x-handlebars-template">
 {{#if this.0.poUUID}}
-  <p><b>Created Purchase Order Number</b>: <a href="${baseFolioUrl}orders/view/{{this.0.poUUID}}" title="View this PO in FOLIO Orders app" target="_blank">{{this.0.poNumber}}</a></p>
+  <p><b>Created Purchase Order Number</b>: <a href="${baseFolioUrl}orders/view/{{this.0.poUUID}}" title="View this PO in FOLIO Orders app" target="_blank">{{this.0.poNumber}}</a> - {{this.0.vendorCode}}</p>
 {{/if}}
 
 <ul>
@@ -285,6 +285,7 @@ function showname() {
           <dt><a href="${baseFolioUrl}orders/lines/view/{{poLineUUID}}" title="View this PO Line in FOLIO Orders app" target="_blank">{{poLineNumber}}</a></dt>
           <dd><a href="${baseFolioUrl}inventory/view/{{instanceUUID}}" title="View this Instance in FOLIO Inventory app" target="_blank">{{title}}</a></dd>
           <dd class="metadata">{{instanceHrid}}</dd>
+          <dd class="metadata">{{isbn}}</dd>
           <dd class="metadata"><strong>{{requester}}</strong></dd>
           <dd class="metadata">{{{linkify internalNote}}}</dd>
           <dd class="metadata">{{{linkify receivingNote}}}</dd>
