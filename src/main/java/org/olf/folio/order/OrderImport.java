@@ -45,6 +45,7 @@ public class OrderImport {
 	private HashMap<String, String> lookupTable;
 	private HashMap<String, String> billingMap;
 	private String tenant;
+	private boolean rushPO = false;
 	
 	private ApiService apiService;
 	MarcUtils marcUtils = new MarcUtils();
@@ -183,6 +184,7 @@ public class OrderImport {
 			    DataField nineFiveTwo = (DataField) record.getVariableField("952");
 			    DataField nineEightyOne = (DataField) record.getVariableField("981");
 			    DataField nineSixtyOne = (DataField) record.getVariableField("961");
+			    DataField twoSixtyFour = (DataField) record.getVariableField("264");
 			    
 				String title = marcUtils.getTitle(twoFourFive);						 
 				String fundCode = marcUtils.getFundCode(nineEighty);
@@ -339,7 +341,21 @@ public class OrderImport {
 				String requester = marcUtils.getRequester(nineEightyOne);
 				if (StringUtils.isNotEmpty(requester)) {
 					orderLine.put("requester", requester);
+					rushPO = true;
 				}
+				
+				// add publisher and publicationDate
+                if (twoSixtyFour != null) {
+                    String publisher = marcUtils.getPublisher(twoSixtyFour);
+                    String pubDate = marcUtils.getPublicationDate(twoSixtyFour);
+                    String pubYear = marcUtils.matchYear(pubDate);
+                    if (StringUtils.isNotEmpty(publisher)) {
+                        orderLine.put("publisher", publisher);
+                    }
+                    if (StringUtils.isNotEmpty(pubYear)) {                        
+                        orderLine.put("publicationDate", pubYear);
+                    }
+                }
 				
 				
 				// add fund distribution info
@@ -351,6 +367,9 @@ public class OrderImport {
 				funds.put(fundDist);
 				orderLine.put("fundDistribution", funds);
 				
+				if (rushPO) {
+                    order.put("poNumberPrefix", "RUSH");
+                }
 
 				orderLine.put("purchaseOrderId", orderUUID.toString());
 				poLines.put(orderLine);
