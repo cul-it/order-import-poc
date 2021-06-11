@@ -2,8 +2,12 @@ package org.olf.folio.order;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -363,11 +367,23 @@ public class MarcToJson {
                 if (isDebug()) {
                     System.out.println("Lookup vendor: "+ vendorCode);
                 }
-                String organizationEndpoint = this.getEndpoint() + "/organizations-storage/organizations?limit=30&offset=0&query=((code='" + vendorCode + "'))";
-                String orgLookupResponse = this.apiService.callApiGet(organizationEndpoint,  token);
-                JSONObject orgObject = new JSONObject(orgLookupResponse);
-                String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
-                
+                 
+                try {
+                    // URL encode organization code to avoid cql parse error on forward slash
+                    String encodedOrgCode = URLEncoder.encode("\"" + vendorCode + "\"", StandardCharsets.UTF_8.name());
+                    logger.debug("encodedOrgCode: " + encodedOrgCode);
+
+                    String organizationEndpoint = this.getEndpoint()
+                            + "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+                    logger.debug("organizationEndpoint: " + organizationEndpoint);
+                    String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
+                    JSONObject orgObject = new JSONObject(orgLookupResponse);
+                    String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
+                    order.put("vendor", vendorId);                
+                } catch (UnsupportedEncodingException e) {
+                    logger.error(e.getMessage());
+                }
+
                 //LOOK UP THE FUND
                 if (isDebug()) {
                     System.out.println("Lookup fund: "+ fundCode);
@@ -376,10 +392,7 @@ public class MarcToJson {
                 final String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
                                 
                  
-                // CREATING THE PURCHASE ORDER                
-                
-                order.put("vendor", vendorId);                
-                
+                // CREATING THE PURCHASE ORDER 
                 // POST ORDER LINE
                 //FOLIO WILL CREATE THE INSTANCE, HOLDINGS, ITEM (IF PHYSICAL ITEM)
                 JSONObject orderLine = new JSONObject();
