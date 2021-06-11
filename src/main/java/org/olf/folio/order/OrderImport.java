@@ -207,9 +207,11 @@ public class OrderImport {
 				try {
 					// URL encode organization code to avoid cql parse error on forward slash
 					String encodedOrgCode = URLEncoder.encode("\"" + vendorCode + "\"", StandardCharsets.UTF_8.name());
+					logger.debug("encodedOrgCode: " + encodedOrgCode);
 
 					String organizationEndpoint = baseOkapEndpoint
 							+ "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+					logger.debug("organizationEndpoint: " + organizationEndpoint);
 					String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
 					JSONObject orgObject = new JSONObject(orgLookupResponse);
 					String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
@@ -751,9 +753,11 @@ public class OrderImport {
 		try {
 			// URL encode organization code to avoid cql parse error on forward slash
 			String encodedOrgCode = URLEncoder.encode("\"" + orgCode + "\"", StandardCharsets.UTF_8.name());
+			logger.debug("encodedOrgCode: " + encodedOrgCode);
 
 			//LOOK UP THE ORGANIZATION
 			String organizationEndpoint = baseOkapiEndpoint + "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+			logger.debug("organizationEndpoint: " + organizationEndpoint);
 			String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
 			JSONObject orgObject = new JSONObject(orgLookupResponse);
 			//---------->VALIDATION: MAKE SURE THE ORGANIZATION CODE EXISTS

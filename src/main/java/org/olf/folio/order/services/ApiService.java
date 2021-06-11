@@ -35,6 +35,7 @@ public class ApiService {
 	
 	public String callApiGet(String url, String token) throws Exception, IOException, InterruptedException {
 		CloseableHttpClient client = HttpClients.custom().build();
+    logger.debug("url from ApiService: " + url);
 		HttpUriRequest request = RequestBuilder.get()
 				.setUri(url)
 				.setHeader("x-okapi-tenant", this.tenant)
