@@ -60,6 +60,7 @@ public class OrderImport {
 		JSONArray errorMessages = new JSONArray();
 		
 		//COLLECT VALUES FROM THE CONFIGURATION FILE
+		// TODO: Fix this typo everywhere... Should be baseOkapiEndpoint
 		String baseOkapEndpoint = (String) getMyContext().getAttribute("baseOkapEndpoint");
 		String apiUsername = (String) getMyContext().getAttribute("okapi_username");
 		String apiPassword = (String) getMyContext().getAttribute("okapi_password");
