@@ -1,5 +1,8 @@
 package org.olf.folio.order.services;
- 
+
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Ignore; 
@@ -29,7 +32,7 @@ public class GetOrganizationsTest extends ApiBaseTest {
 	@Test
 	public void testGetAllOrganizations() {
 		 
-		String organizationEndpoint = getBaseOkapEndpoint() + "organizations-storage/organizations?limit=3";
+		String organizationEndpoint = getBaseOkapEndpoint() + "organizations-storage/organizations";
 		try {
 			String orgLookupResponse = getApiService().callApiGet(organizationEndpoint,  getToken());
 			JSONObject orgObject = new JSONObject(orgLookupResponse);
@@ -44,23 +47,30 @@ public class GetOrganizationsTest extends ApiBaseTest {
 	}
 	
 	@Test
-	public void testGetOrganization() { 
-		String vendorCode = "AMAZON";
-		String organizationEndpoint = getBaseOkapEndpoint() + "organizations-storage/organizations?limit=1&offset=0&query=((code='" + vendorCode + "'))";
+	public void testGetOrganization() {
+		String orgCode = "HARRASS/E";
+
 		try {
-			String orgLookupResponse = getApiService().callApiGet(organizationEndpoint,  getToken());
-		    JSONObject orgObject = new JSONObject(orgLookupResponse);
-		    JSONArray jsonArray =  orgObject.getJSONArray("organizations");
-			assertNotNull(jsonArray);
-			String vendorId = (String) jsonArray.getJSONObject(0).get("id");
-			assertTrue(StringUtils.length(vendorId) > 0); 
-			UUID uuid = UUID.fromString(vendorId);
-			//System.out.println("vendorId: "+ vendorId);
-		} catch (IllegalArgumentException e) {
-			fail("vendorID was not a valid UUID");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			fail(e.getMessage());
+			String encodedOrgCode = URLEncoder.encode("\"" + orgCode + "\"", StandardCharsets.UTF_8.name());
+
+			String organizationEndpoint = getBaseOkapEndpoint() + "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+			try {
+				String orgLookupResponse = getApiService().callApiGet(organizationEndpoint,  getToken());
+					JSONObject orgObject = new JSONObject(orgLookupResponse);
+					JSONArray jsonArray =  orgObject.getJSONArray("organizations");
+				assertNotNull(jsonArray);
+				String vendorId = (String) jsonArray.getJSONObject(0).get("id");
+				assertTrue(StringUtils.length(vendorId) > 0); 
+				UUID uuid = UUID.fromString(vendorId);
+				//System.out.println("vendorId: "+ vendorId);
+			} catch (IllegalArgumentException e) {
+				fail("vendorID was not a valid UUID");
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				fail(e.getMessage());
+			}
+		} catch (UnsupportedEncodingException e) {;
+			fail("Unable to URL encoode organization code " + orgCode);
 		}
 	}
 	
