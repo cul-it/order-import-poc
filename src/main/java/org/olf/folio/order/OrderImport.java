@@ -5,7 +5,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream; 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -198,12 +201,22 @@ public class OrderImport {
 			    String locationName = marcUtils.getLocation(nineFiveTwo);
 			    
 			     
-			    //LOOK UP VENDOR
-			    //logger.debug("lookupVendor");
-				String organizationEndpoint = baseOkapEndpoint + "/organizations-storage/organizations?limit=30&offset=0&query=((code='" + vendorCode + "'))";
-				String orgLookupResponse = this.apiService.callApiGet(organizationEndpoint,  token);
-				JSONObject orgObject = new JSONObject(orgLookupResponse);
-				String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
+				// LOOK UP THE ORGANIZATION (vendor) again!
+				// TODO: Refactor validateRequiredValues() to store org & fund IDs and avoid redundant HTTP requests
+				//logger.debug("lookupVendor");
+				try {
+					// URL encode organization code to avoid cql parse error on forward slash
+					String encodedOrgCode = URLEncoder.encode("\"" + vendorCode + "\"", StandardCharsets.UTF_8.name());
+
+					String organizationEndpoint = baseOkapEndpoint
+							+ "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+					String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
+					JSONObject orgObject = new JSONObject(orgLookupResponse);
+					String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
+					order.put("vendor", vendorId);				
+				} catch (UnsupportedEncodingException e) {
+					logger.error(e.getMessage());
+				}
 				
 				//LOOK UP THE FUND
 				//logger.debug("lookup Fund");
@@ -214,7 +227,6 @@ public class OrderImport {
 				
 				// CREATING THE PURCHASE ORDER				
 				
-				order.put("vendor", vendorId);				
 				
 				// POST ORDER LINE
 				//FOLIO WILL CREATE THE INSTANCE, HOLDINGS, ITEM (IF PHYSICAL ITEM)
@@ -735,19 +747,30 @@ public class OrderImport {
 	 */
 	public JSONObject validateOrganization(String orgCode, String title,  String token, String baseOkapiEndpoint ) throws IOException, InterruptedException, Exception {
 		JSONObject errorMessage = new JSONObject();
-	    //LOOK UP THE ORGANIZATION
-	    String organizationEndpoint = baseOkapiEndpoint + "organizations-storage/organizations?limit=30&offset=0&query=((code='" + orgCode + "'))";
-	    String orgLookupResponse = apiService.callApiGet(organizationEndpoint,  token);
-		JSONObject orgObject = new JSONObject(orgLookupResponse);
-		//---------->VALIDATION: MAKE SURE THE ORGANIZATION CODE EXISTS
-		if (orgObject.getJSONArray("organizations").length() < 1) {
-			logger.error(orgObject.toString(3));
-			errorMessage.put("error", "Organization code in file (" + orgCode + ") does not exist in FOLIO");
-			errorMessage.put("title", title);
+
+		try {
+			// URL encode organization code to avoid cql parse error on forward slash
+			String encodedOrgCode = URLEncoder.encode("\"" + orgCode + "\"", StandardCharsets.UTF_8.name());
+
+			//LOOK UP THE ORGANIZATION
+			String organizationEndpoint = baseOkapiEndpoint + "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+			String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
+			JSONObject orgObject = new JSONObject(orgLookupResponse);
+			//---------->VALIDATION: MAKE SURE THE ORGANIZATION CODE EXISTS
+			if (orgObject.getJSONArray("organizations").length() < 1) {
+				logger.error(orgObject.toString(3));
+				errorMessage.put("error", "Organization code in file (" + orgCode + ") does not exist in FOLIO");
+				errorMessage.put("title", title);
+				errorMessage.put("PONumber", "~error~");
+				return errorMessage;
+			}
+			return null;
+		} catch (UnsupportedEncodingException e) {
+			logger.error(e.getMessage());
+			errorMessage.put("error", "Unable to URL encoode organization code " + orgCode);
 			errorMessage.put("PONumber", "~error~");
 			return errorMessage;
 		}
-		return null;
 	}
 	
 	/**
