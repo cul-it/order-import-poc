@@ -15,11 +15,7 @@ Proof of concept workaround needed until FOLIO supports importing MARC records t
 * Posts a purchase order (approved and open) and one line item for each MARC record in a file (POST orders/composite-orders)
 * Retreives the puchase order (to get the ID of the instance FOLIO automatically created) (GET orders/composite-orders/theOrderUuid)
 * Retreive the new instance (GET inventory/instances/theinstanceid)
-* Posts to snapshots (POST source-storage/snapshots)
-* Posts to source record storage (source-storage/records)
-* Retreives holdings record FOLIO created (GET holdings-storage/holdings?query=(instanceId==theinstanceid))
-* PUT to instances (to update the instance with source 'MARC' and add data)  (PUT inventory/instances/theinstancid)
-* PUT to holdings (to add 856s to holdings) (PUT holdings-storage/holdings/...)
+* Posts to copycat (POST copycat/imports)
 
 ### If you want to try it 
 * copy the src/main/resources/application.properties.example file to src/main/resources/application.properties
@@ -34,6 +30,7 @@ Proof of concept workaround needed until FOLIO supports importing MARC records t
 ### Permissions
 This app requires a FOLIO user account with the following permissions granted:
 
+* `copycat.imports.post`
 * `finance.budgets.collection.get`
 * `finance.fiscal-years.collection.get`
 * `finance.funds.collection.get`
@@ -56,8 +53,6 @@ This app requires a FOLIO user account with the following permissions granted:
 * `orders.all`
 * `orders.item.approve`
 * `organizations-storage.organizations.collection.get`
-* `source-storage.records.post`
-* `source-storage.snapshots.post`
 * `tags.collection.get`
 * `ui-orders.order.create`
 

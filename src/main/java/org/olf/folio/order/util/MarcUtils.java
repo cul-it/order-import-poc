@@ -1,6 +1,8 @@
 package org.olf.folio.order.util;
 
- 
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,6 +13,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.marc4j.MarcJsonWriter;
 import org.marc4j.marc.DataField;
 import org.marc4j.marc.Record;
 import org.marc4j.marc.Subfield;
@@ -352,4 +355,12 @@ public class MarcUtils {
 	    }
 	}	
 
+    public String recordToMarcJson(Record record) throws IOException {
+      try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+        final MarcJsonWriter writer = new MarcJsonWriter(out);
+        writer.write(record);
+        writer.close();
+        return out.toString();
+      }
+    }
 }

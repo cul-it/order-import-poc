@@ -1,7 +1,6 @@
 package org.olf.folio.order;
 
 
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream; 
@@ -23,17 +22,10 @@ import java.util.UUID;
 import javax.servlet.ServletContext;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.marc4j.MarcJsonWriter; 
 import org.marc4j.MarcReader;
 import org.marc4j.MarcStreamReader;
-import org.marc4j.MarcStreamWriter; 
-import org.marc4j.MarcWriter;
-import org.marc4j.converter.impl.AnselToUnicode;
-import org.marc4j.marc.ControlField;
 import org.marc4j.marc.DataField;
-import org.marc4j.marc.MarcFactory;
 import org.marc4j.marc.Record;
-import org.marc4j.marc.Subfield;
 import org.marc4j.marc.VariableField;
 import org.olf.folio.order.services.ApiService;
 import org.olf.folio.order.util.LookupUtil;
@@ -135,13 +127,6 @@ public class OrderImport {
 		// READ THE MARC RECORD FROM THE FILE
 		in = new FileInputStream(filePath + fileName);
 		reader = new MarcStreamReader(in);
-		
-		// TODO: clean up... the instantiation of this byteArrayOutputStream is used below but seems to be 
-		// handled differently...this one uses Unicode...others use UTF-8
-		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-		MarcWriter w = new MarcStreamWriter(byteArrayOutputStream, "UTF-8");		
-		AnselToUnicode conv = new AnselToUnicode();
-		w.setConverter(conv);
 		
 		// GENERATE UUID for the PO
 	   
@@ -408,8 +393,6 @@ public class OrderImport {
 				JSONObject responseMessage = new JSONObject();
 				responseMessage.put("poNumber", poNumberObj.get("poNumber"));
 				responseMessage.put("poUUID", orderUUID.toString());
-				UUID snapshotId = UUID.randomUUID();
-				UUID recordTableId = UUID.randomUUID(); 
 				
                 String poLineUUID = poLineObject.getString("id");
                 String poLineNumber = poLineObject.getString("poLineNumber");
@@ -434,142 +417,31 @@ public class OrderImport {
 				responseMessage.put("receivingNote", receivingNote);
 				responseMessage.put("vendorCode", vendorCode);
 				
-				//GET THE INSTANCE RECORD FOLIO CREATED, SO WE CAN ADD BIB INFO TO IT:
+				// Get the Inventory Instance FOLIO created, so we can render the Instance HRID in the results
 				logger.debug("get InstanceResponse");
 				String instanceResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/instances/" + instanceId, token);
 				JSONObject instanceAsJson = new JSONObject(instanceResponse);
 				String hrid = instanceAsJson.getString("hrid");
-				
-				//PREPARING TO ADD THE MARC RECORD TO SOURCE RECORD STORAGE:
-				//CONSTRUCTING THE 999 OF THE MARC RECORD for FOLIO: 
-				DataField field = MarcFactory.newInstance().newDataField();
-				field.setTag("999");
-				field.setIndicator1('f');
-				field.setIndicator2('f');
-				Subfield one = MarcFactory.newInstance().newSubfield('i', instanceId);
-				Subfield two = MarcFactory.newInstance().newSubfield('s', recordTableId.toString());
-				field.addSubfield(one);
-				field.addSubfield(two);
-				record.addVariableField(field);
-			    if (record.getControlNumberField() != null) {
-			    	record.getControlNumberField().setData(hrid);
-			    }  else {
-			    	ControlField cf = MarcFactory.newInstance().newControlField("001");
-			    	cf.setData(hrid);
-			    	record.addVariableField(cf);
-			    }
-			    
-				//TRANSFORM THE RECORD INTO JSON
-				logger.trace("MARC RECORD: " + record.toString());
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				MarcJsonWriter jsonWriter =  new MarcJsonWriter(baos);
-				jsonWriter.setUnicodeNormalization(true);
-				jsonWriter.write(record);
-				jsonWriter.close();
-				String jsonString = baos.toString();
-				JSONObject mRecord = new JSONObject(jsonString);
-				JSONObject content = new JSONObject();
-				content.put("content", mRecord);
-				logger.trace("MARC TO JSON: " + mRecord.toString(3));
+        responseMessage.put("instanceHrid", hrid);
+        responseMessage.put("instanceUUID", instanceId);
 
-				//GET THE RAW MARC READY TO POST TO THE API
-				ByteArrayOutputStream rawBaos = new ByteArrayOutputStream();
-				MarcWriter writer = new MarcStreamWriter(rawBaos);
-				writer.write(record);
-				// TODO: is this a bug?...nothing was previously written to byteArrayOutputStream
-				JSONObject jsonWithRaw = new JSONObject();
-				jsonWithRaw.put("id", instanceId);
-				jsonWithRaw.put("content", byteArrayOutputStream);
+				// Transform the MARC record into JSON
+        String marcJsonString = marcUtils.recordToMarcJson(record);
+        logger.debug("MARC-JSON " + marcJsonString);
+        JSONObject marcJsonObject = new JSONObject();
+        marcJsonObject.put("json", marcJsonString);
 				
-				//CREATING JOB EXECUTION?
-				//TODO: I'M NOT ENTIRELY SURE IF THIS IS NECESSARY?
-				//WHAT THE CONSEQUENCES OF THIS ARE?
-				//TO POST TO SOURCE RECORD STORAGE, A SNAPSHOT ID
-				//SEEMS TO BE REQUIRECD
-				JSONObject jobExecution = new JSONObject();
-				jobExecution.put("jobExecutionId", snapshotId.toString());
-				jobExecution.put("status", "PARSING_IN_PROGRESS");
-				logger.debug("post snapShot to source-storage");
-				String snapShotResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "source-storage/snapshots",  jobExecution, token);
+        //JSON body for POST to mod-copycat for overlay/update of Inventory Instance created by mod-orders
+        JSONObject copycatImportObject = new JSONObject();
+        copycatImportObject.put("internalIdentifier", instanceId);
+        // Hardcode UUID for mod-copycat's reference data OCLC profile; avoid another HTTP request
+        copycatImportObject.put("profileId", "f26df83c-aa25-40b6-876e-96852c3d4fd4");
+        copycatImportObject.put("record", marcJsonObject);
+
+				// Overlay/Update Inventory Instance via mod-copycat
+				logger.debug("post copycatImportObject");
+				String copycatResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "copycat/imports", copycatImportObject, token);
 				
-				//OBJECT FOR SOURCE RECORD STORAGE API CALL:
-				JSONObject sourceRecordStorageObject = new JSONObject();
-				sourceRecordStorageObject.put("recordType", "MARC");
-				sourceRecordStorageObject.put("snapshotId", snapshotId.toString());
-				sourceRecordStorageObject.put("matchedId", recordTableId.toString());
-				
-				//LINK THE INSTANCE TO SOURCE RECORD STORAGE
-				JSONObject externalId = new JSONObject();
-				externalId.put("instanceId", instanceId);
-				sourceRecordStorageObject.put("externalIdsHolder", externalId);
-				
-				//RAW RECORD
-				JSONObject rawRecordObject = new JSONObject();
-				rawRecordObject.put("id", instanceId);
-				rawRecordObject.put("content", jsonWithRaw.toString());
-				
-				//PARSED RECORD
-				JSONObject parsedRecord = new JSONObject();
-				parsedRecord.put("id", instanceId);
-				parsedRecord.put("content", mRecord);
-				sourceRecordStorageObject.put("rawRecord", rawRecordObject);
-				sourceRecordStorageObject.put("parsedRecord", parsedRecord);
-				sourceRecordStorageObject.put("id", instanceId);
-				
-				//CALL SOURCE RECORD STORAGE POST
-				logger.debug("post sourceRecordStoractObject");
-				String storageResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "source-storage/records", sourceRecordStorageObject,token);
-				
-				// Add Identifiers to the instance
-				JSONArray identifiers = marcUtils.buildIdentifiers(record, lookupTable);
-				Iterator isbnIterator = identifiers.iterator();
-                List<String> isbnList = new ArrayList();
-                while (isbnIterator.hasNext()) {
-                    JSONObject identifierObj = (JSONObject) isbnIterator.next();
-                    String identifierType = identifierObj.getString("identifierTypeId");
-                    if (identifierType.equals(ISBNId)) {
-                        isbnList.add((String) identifierObj.get("value"));
-                   }
-                }
-                if (isbnList.size() > 0) {
-                    responseMessage.put("isbn", isbnList.get(0));    
-                }
-                
-                // now get Contributors
-				JSONArray contributors = marcUtils.buildContributors(record, lookupTable);
-				
-				instanceAsJson.put("title", title);
-				instanceAsJson.put("source", "MARC");
-				instanceAsJson.put("instanceTypeId", lookupTable.get("text"));
-				if (identifiers.length() > 0) {
-                    logger.trace("Adding identifiers...");
-                    instanceAsJson.put("identifiers", identifiers);
-                }
-                if (contributors.length() > 0) {
-                    logger.trace("Adding contributors ...");
-                    instanceAsJson.put("contributors", contributors);
-                }
-				instanceAsJson.put("discoverySuppress", false);				
-				
-				//GET THE HOLDINGS RECORD FOLIO CREATED, SO WE CAN ADD URLs FROM THE 856 IN THE MARC RECORD
-				String holdingResponse = apiService.callApiGet(baseOkapEndpoint + "holdings-storage/holdings?query=(instanceId==" + instanceId + ")", token);
-				JSONObject holdingsAsJson = new JSONObject(holdingResponse);
-				JSONObject holdingRecord = holdingsAsJson.getJSONArray("holdingsRecords").getJSONObject(0);
-							
-				//UPDATE THE INSTANCE RECORD
-				logger.debug("Update Instance Record");
-				//instanceAsJson.put("electronicAccess", eResources);
-				instanceAsJson.put("natureOfContentTermIds", new JSONArray());
-				instanceAsJson.put("precedingTitles", new JSONArray());
-				instanceAsJson.put("succeedingTitles", new JSONArray());
-				logger.debug(instanceAsJson.toString(3));
-				String instanceUpdateResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/instances/" + instanceId,  instanceAsJson, token);
-				
-				logger.debug("Update holdings record");
-				String createHoldingsResponse = apiService.callApiPut(baseOkapEndpoint + "holdings-storage/holdings/" + holdingRecord.getString("id"), holdingRecord,token);
-				
-				responseMessage.put("instanceHrid", hrid);
-				responseMessage.put("instanceUUID", instanceId);
 				//responseMessage.put("location", locationName +" ("+ lookupTable.get(locationName + "-location") +")");				
 				responseMessages.put(responseMessage);
 				numRec++;				
