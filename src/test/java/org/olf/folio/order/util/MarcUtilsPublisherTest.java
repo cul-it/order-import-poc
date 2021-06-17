@@ -12,7 +12,7 @@ import org.marc4j.marc.Record;
 
 public class MarcUtilsPublisherTest extends MarcUtilsBaseTest { 
 	
-    boolean debug = true;    
+    boolean debug = false;    
 
 	@Test
 	public void testGetPublisher() {
@@ -22,9 +22,8 @@ public class MarcUtilsPublisherTest extends MarcUtilsBaseTest {
 		    for (String fname: myFnames) {
     			List<Record> records = getRecords(fname);
     			for (Record record: records) {
-    				DataField df = (DataField) record.getVariableField("264");
-    				//System.out.println(df.toString());
-    				String publisher = marcUtils.getPublisher(df);
+    				
+    				String publisher = marcUtils.getPublisher(record);
     				if (debug) {
     					System.out.println(fname + " - publisher: " + publisher);
     				} else {

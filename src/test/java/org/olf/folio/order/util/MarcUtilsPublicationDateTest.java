@@ -12,7 +12,7 @@ import org.marc4j.marc.Record;
 
 public class MarcUtilsPublicationDateTest extends MarcUtilsBaseTest { 
 	
-    boolean debug = true;
+    boolean debug = false;
 
 	@Test
 	public void testGetPublicationDate() {
