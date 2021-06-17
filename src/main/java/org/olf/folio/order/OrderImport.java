@@ -434,8 +434,8 @@ public class OrderImport {
         //JSON body for POST to mod-copycat for overlay/update of Inventory Instance created by mod-orders
         JSONObject copycatImportObject = new JSONObject();
         copycatImportObject.put("internalIdentifier", instanceId);
-        // Hardcode UUID for mod-copycat's reference data OCLC profile; avoid another HTTP request
-        copycatImportObject.put("profileId", "f26df83c-aa25-40b6-876e-96852c3d4fd4");
+        // Use constant for mod-copycat's reference data OCLC profile UUID; avoid another HTTP request
+        copycatImportObject.put("profileId", Constants.COPYCAT_OCLC_PROFILE);
         copycatImportObject.put("record", marcJsonObject);
 
 				// Overlay/Update Inventory Instance via mod-copycat
