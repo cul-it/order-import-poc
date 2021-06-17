@@ -489,21 +489,16 @@ public class MarcToJson {
                     orderLine.put("selector", selector);
                 }
                 
-                // get requester
-                String requester = marcUtils.getRequester(nineEightyOne);
-                if (StringUtils.isNotEmpty(requester)) {
-                    orderLine.put("requester", requester);
-                    rushPO = true;
-                }
+                 
                 
                 // add publisher and publicationDate
+                String publisher = marcUtils.getPublisher(record);
+                if (StringUtils.isNotEmpty(publisher)) {
+                    orderLine.put("publisher", publisher);
+                }
+                
                 if (twoSixtyFour != null) {
-                    String publisher = marcUtils.getPublisher(twoSixtyFour);
-                    String pubDate = marcUtils.getPublicationDate(twoSixtyFour);
-                    String pubYear = marcUtils.matchYear(pubDate);
-                    if (StringUtils.isNotEmpty(publisher)) {
-                        orderLine.put("publisher", publisher);
-                    }
+                    String pubYear = marcUtils.getPublicationDate(twoSixtyFour);
                     if (StringUtils.isNotEmpty(pubYear)) {                        
                         orderLine.put("publicationDate", pubYear);
                     }
@@ -519,8 +514,19 @@ public class MarcToJson {
                 funds.put(fundDist);
                 orderLine.put("fundDistribution", funds);
 
+                // get requester
+                String requester = marcUtils.getRequester(nineEightyOne);
+                if (StringUtils.isNotEmpty(requester)) {
+                    orderLine.put("requester", requester);
+                    rushPO = true;
+                }
+
+                // if rushPO is ever set, prefix the poNumber with "RUSH"
                 if (rushPO) {
                     order.put("poNumberPrefix", "RUSH");
+                    order.put("poNumber", "RUSH"+ poNumberObj.get("poNumber"));
+                } else {
+                    order.put("poNumber", poNumberObj.get("poNumber"));
                 }
                 orderLine.put("purchaseOrderId", orderUUID.toString());
                 poLines.put(orderLine);
