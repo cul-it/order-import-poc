@@ -413,11 +413,7 @@ public class OrderImport {
 			try {
 			     
 				JSONObject responseMessage = new JSONObject();
-				if (rushPO) {
-                    responseMessage.put("poNumber", "RUSH"+ poNumberObj.get("poNumber"));
-                } else {
-                    responseMessage.put("poNumber", poNumberObj.get("poNumber"));
-                } 
+        responseMessage.put("poNumber", updatedPurchaseOrderJson.getString("poNumber"));
 				responseMessage.put("poUUID", orderUUID.toString());
 				UUID snapshotId = UUID.randomUUID();
 				UUID recordTableId = UUID.randomUUID(); 
