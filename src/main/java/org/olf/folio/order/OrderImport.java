@@ -162,7 +162,6 @@ public class OrderImport {
 		order.put("approved", true);
 		order.put("workflowStatus", "Open");
 		order.put("billTo", billingUUID);
-		order.put("poNumber", poNumberObj.get("poNumber"));
 		
 		JSONArray poLines = new JSONArray();
 		
@@ -414,7 +413,11 @@ public class OrderImport {
 			try {
 			     
 				JSONObject responseMessage = new JSONObject();
-				responseMessage.put("poNumber", poNumberObj.get("poNumber"));
+				if (rushPO) {
+                    responseMessage.put("poNumber", "RUSH"+ poNumberObj.get("poNumber"));
+                } else {
+                    responseMessage.put("poNumber", poNumberObj.get("poNumber"));
+                } 
 				responseMessage.put("poUUID", orderUUID.toString());
 				UUID snapshotId = UUID.randomUUID();
 				UUID recordTableId = UUID.randomUUID(); 
