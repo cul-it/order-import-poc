@@ -50,6 +50,7 @@
   padding-left: .6em;
   font-family: monospace, monospace;
   font-size: .8em;
+  white-space: pre-wrap;
   background: #fff;
 }
 
@@ -286,6 +287,9 @@ function showname() {
           <dd><a href="${baseFolioUrl}inventory/view/{{instanceUUID}}" title="View this Instance in FOLIO Inventory app" target="_blank">{{title}}</a></dd>
           <dd class="metadata">{{instanceHrid}}</dd>
           <dd class="metadata">{{isbn}}</dd>
+          {{#each seriesFields}}
+            <dd class="metadata">{{this}}</dd>
+          {{/each}}
           <dd class="metadata"><strong>{{requester}}</strong></dd>
           <dd class="metadata">{{{linkify internalNote}}}</dd>
           <dd class="metadata">{{{linkify receivingNote}}}</dd>
