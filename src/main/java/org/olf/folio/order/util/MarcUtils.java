@@ -50,6 +50,8 @@ public class MarcUtils {
 	private final String PUBLISHER = "b"; // 264$b
     private final String PUBLISHER_LOCATION = "a"; // 264$a
     private final String PUBLICATION_DATE = "c"; // 264$c
+    
+    private final String BARCODE = "p"; // 976$p
 
 	public MarcUtils() {
 		// TODO Auto-generated constructor stub
@@ -230,7 +232,16 @@ public class MarcUtils {
         return matchYear(publicationDate);
     }
 	
-	
+    public String getBarcode(DataField df ) {
+        // expecting a 976 field
+        String barcode = new String();
+        if (df != null) {
+            barcode = df.getSubfieldsAsString(BARCODE);
+        } else {
+            return null;
+        }
+        return barcode;
+    }
 	
 	public JSONArray getLinks(Record record) {
 		JSONArray eResources = new JSONArray();
@@ -385,7 +396,22 @@ public class MarcUtils {
             
         }
         return identifiers; 
-    } 
+    }
+   
+    public List<String> getSeriesFields(Record record) {
+        List<DataField> fields = record.getDataFields();
+        Iterator<DataField> fieldsIterator = fields.iterator();
+        List<String> seriesFields = new ArrayList<String>(); 
+        
+        while (fieldsIterator.hasNext()) {
+            
+            DataField field = (DataField) fieldsIterator.next();
+            if (StringUtils.equals(field.getTag(), "490") || StringUtils.equals(field.getTag(), "830") ) {
+                seriesFields.add(field.toString());
+            }
+        }
+        return seriesFields;
+    }
 	
 	public String normalizePrice(String priceStr) {
 	    try {
