@@ -161,7 +161,6 @@ public class OrderImport {
 	     
 		logger.debug("reading marc file");
 		int numRec = 0;
-		JSONArray productIds = null;
 		
 		while (reader.hasNext()) {
 			try {
@@ -273,7 +272,7 @@ public class OrderImport {
                 JSONObject detailsObject = new JSONObject();
                 
                 // get ISBN values in a productIds array and add to detailsObject if not empty 
-                productIds = new JSONArray();
+                JSONArray productIds = new JSONArray();
                 JSONArray identifiers = marcUtils.buildIdentifiers(record, lookupTable);
                 Iterator identIter = identifiers.iterator();
                 while (identIter.hasNext()) {
@@ -426,9 +425,19 @@ public class OrderImport {
                 
                 Record record = recordMap.get(poLineUUID);
                 
+        List<String> isbnList = new ArrayList<String>();
 				String receivingNote = null;
+        
 				if (polDetails != null) {
+					JSONArray polProductIds = polDetails.optJSONArray("productIds");
 					receivingNote = polDetails.optString("receivingNote");
+
+          // Extract ISBNs from POL productIds to display in results
+          Iterator<Object> isbnIterator = polProductIds.iterator();
+          while (isbnIterator.hasNext()) {
+            JSONObject productIdObj = (JSONObject) isbnIterator.next();
+            isbnList.add((String) productIdObj.get("productId"));
+          }
 				}
 				
 				responseMessage.put("poLineUUID", poLineUUID);
@@ -438,7 +447,7 @@ public class OrderImport {
 				responseMessage.put("internalNote", internalNote);
 				responseMessage.put("receivingNote", receivingNote);
 				responseMessage.put("vendorCode", vendorCode);
-				responseMessage.put("productIds", productIds);
+				responseMessage.put("isbn", isbnList);
 				
 				// barcode if 976 field exists
 				// TOSO: determine how this will be added to inventory. just grab the value for now
