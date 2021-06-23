@@ -160,7 +160,8 @@ public class OrderImport {
 		// iterator over records in the marc file.
 	     
 		logger.debug("reading marc file");
-		int numRec = 0; 
+		int numRec = 0;
+		JSONArray productIds = null;
 		
 		while (reader.hasNext()) {
 			try {
@@ -272,7 +273,7 @@ public class OrderImport {
                 JSONObject detailsObject = new JSONObject();
                 
                 // get ISBN values in a productIds array and add to detailsObject if not empty 
-                JSONArray productIds = new JSONArray();
+                productIds = new JSONArray();
                 JSONArray identifiers = marcUtils.buildIdentifiers(record, lookupTable);
                 Iterator identIter = identifiers.iterator();
                 while (identIter.hasNext()) {
@@ -373,7 +374,6 @@ public class OrderImport {
                 } else {
                     order.put("poNumber", poNumberObj.get("poNumber"));
                 }
-
 				orderLine.put("purchaseOrderId", orderUUID.toString());
 				poLines.put(orderLine);
 				order.put("compositePoLines", poLines);				
@@ -413,7 +413,7 @@ public class OrderImport {
 			try {
 			     
 				JSONObject responseMessage = new JSONObject();
-        responseMessage.put("poNumber", updatedPurchaseOrderJson.getString("poNumber"));
+                responseMessage.put("poNumber", updatedPurchaseOrderJson.getString("poNumber"));
 				responseMessage.put("poUUID", orderUUID.toString());
 				
                 String poLineUUID = poLineObject.getString("id");
@@ -438,33 +438,44 @@ public class OrderImport {
 				responseMessage.put("internalNote", internalNote);
 				responseMessage.put("receivingNote", receivingNote);
 				responseMessage.put("vendorCode", vendorCode);
+				responseMessage.put("productIds", productIds);
+				
+				// barcode if 976 field exists
+				// TOSO: determine how this will be added to inventory. just grab the value for now
+                DataField nineSevenSix = (DataField) record.getVariableField("976");
+				String barcode = marcUtils.getBarcode(nineSevenSix);
+				
+				// add 490 and 830 raw marc fields as a list to response
+				List<String> seriesFields = marcUtils.getSeriesFields(record);
+				if (seriesFields.size() > 0) {
+				    responseMessage.put("seriesFields", seriesFields);
+				}
 				
 				// Get the Inventory Instance FOLIO created, so we can render the Instance HRID in the results
 				logger.debug("get InstanceResponse");
 				String instanceResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/instances/" + instanceId, token);
 				JSONObject instanceAsJson = new JSONObject(instanceResponse);
 				String hrid = instanceAsJson.getString("hrid");
-        responseMessage.put("instanceHrid", hrid);
-        responseMessage.put("instanceUUID", instanceId);
+                responseMessage.put("instanceHrid", hrid);
+                responseMessage.put("instanceUUID", instanceId);
 
 				// Transform the MARC record into JSON
-        String marcJsonString = marcUtils.recordToMarcJson(record);
-        logger.debug("MARC-JSON " + marcJsonString);
-        JSONObject marcJsonObject = new JSONObject();
-        marcJsonObject.put("json", marcJsonString);
+                String marcJsonString = marcUtils.recordToMarcJson(record);
+                logger.debug("MARC-JSON " + marcJsonString);
+                JSONObject marcJsonObject = new JSONObject();
+                marcJsonObject.put("json", marcJsonString);
 				
-        //JSON body for POST to mod-copycat for overlay/update of Inventory Instance created by mod-orders
-        JSONObject copycatImportObject = new JSONObject();
-        copycatImportObject.put("internalIdentifier", instanceId);
-        // Use constant for mod-copycat's reference data OCLC profile UUID; avoid another HTTP request
-        copycatImportObject.put("profileId", Constants.COPYCAT_OCLC_PROFILE);
-        copycatImportObject.put("record", marcJsonObject);
+                //JSON body for POST to mod-copycat for overlay/update of Inventory Instance created by mod-orders
+                JSONObject copycatImportObject = new JSONObject();
+                copycatImportObject.put("internalIdentifier", instanceId);
+                // Use constant for mod-copycat's reference data OCLC profile UUID; avoid another HTTP request
+                copycatImportObject.put("profileId", Constants.COPYCAT_OCLC_PROFILE);
+                copycatImportObject.put("record", marcJsonObject);
 
 				// Overlay/Update Inventory Instance via mod-copycat
 				logger.debug("post copycatImportObject");
 				String copycatResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "copycat/imports", copycatImportObject, token);
 				
-				//responseMessage.put("location", locationName +" ("+ lookupTable.get(locationName + "-location") +")");				
 				responseMessages.put(responseMessage);
 				numRec++;				
 				
