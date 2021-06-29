@@ -31,6 +31,7 @@ public class MarcUtilsBaseTest {
     protected String singleharrass;
     protected String harrassowitz;
     protected String bksFO;
+    protected String shelfReadyAux;
 
     MarcUtils marcUtils = new MarcUtils();
     List<String> fnames = new ArrayList<String>();
@@ -46,6 +47,7 @@ public class MarcUtilsBaseTest {
         this.singleharrass = this.buildDir + "/marc-test-files/singleharrass.mrc";
         this.harrassowitz = this.buildDir + "/marc-test-files/harrassowitz_9-records_2021-03-10.mrc";
         this.bksFO = this.buildDir + "/marc-test-files/w.j.bksFO.1.mrc";
+        this.shelfReadyAux = this.buildDir + "/marc-test-files/shelfreadyAux.mrc";
         
         fnames.add(this.harrass);
         fnames.add(this.casalini);
@@ -56,6 +58,7 @@ public class MarcUtilsBaseTest {
         fnames.add(this.singleharrass);
         fnames.add(this.harrassowitz);
         fnames.add(this.bksFO);
+        //fnames.add(this.shelfReadyAux;
     }
 
     public List<Record> getRecords(String fname) throws Exception {
