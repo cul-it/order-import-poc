@@ -1,5 +1,6 @@
 package org.olf.folio.order.util;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Disabled;
@@ -14,15 +15,17 @@ import org.marc4j.marc.Record;
 public class MarcUtilsBarcodeTest extends MarcUtilsBaseTest { 
 	
 	boolean debug = false;
-	
-	
 
 	// disabled unil a mrc files with barcodes is available
-	@Disabled
-	public void testGetRush() {
+	
+	@Test
+	public void testGetBarcode() {
+	    
+	    List<String> myFnames = new ArrayList<String>();
+        myFnames.add(this.shelfReadyAux);
 		 
 		try {
-		    for (String fname: this.fnames) {
+		    for (String fname: myFnames) {
     			List<Record> records = getRecords(fname);
     			for (Record record: records) {
     				DataField df = (DataField) record.getVariableField("976");
@@ -32,6 +35,7 @@ public class MarcUtilsBarcodeTest extends MarcUtilsBaseTest {
     				} else {
     					assertNotNull(barcode);
     					assertTrue(barcode.length() > 0);
+    					break; // only need to test first
     				} 
     			}
 		    }
