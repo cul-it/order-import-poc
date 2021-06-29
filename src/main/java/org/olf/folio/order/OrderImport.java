@@ -138,7 +138,7 @@ public class OrderImport {
 		logger.trace("get next PO number");
 		String poNumber = this.apiService.callApiGet(baseOkapEndpoint + "orders/po-number", token);		
 		JSONObject poNumberObj = new JSONObject(poNumber);
-		logger.debug("NEXT PO NUMBER: " + poNumberObj.get("poNumber")); 
+		logger.trace("NEXT PO NUMBER: " + poNumberObj.get("poNumber")); 
         // does this have to be a UUID object?
 		String billingUUID = this.billingMap.get(billTo);		
 		
@@ -388,8 +388,8 @@ public class OrderImport {
 			numRec++;
 		} 
 		
-		logger.info("Here is the PO, order number: "+ poNumberObj.get("poNumber"));
-		logger.info(order.toString(3));
+		logger.debug("Here is the PO, order number: "+ poNumberObj.get("poNumber"));
+		logger.debug(order.toString(3));
 		
 		//POST THE ORDER AND LINE:
 		String orderResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "orders/composite-orders", order, token);  
@@ -399,8 +399,8 @@ public class OrderImport {
 		logger.debug("getUpdatedPurchaseOrder");
 		String updatedPurchaseOrder = apiService.callApiGet(baseOkapEndpoint + "orders/composite-orders/" +orderUUID.toString() ,token); 
 		JSONObject updatedPurchaseOrderJson = new JSONObject(updatedPurchaseOrder);
-		logger.debug("updated purchase order...");
-		logger.debug(updatedPurchaseOrderJson.toString(3));
+		logger.info("updated purchase order...");
+		logger.info(updatedPurchaseOrderJson.toString(3));
 		
 		 
         numRec = 0;         
@@ -425,19 +425,19 @@ public class OrderImport {
                 
                 Record record = recordMap.get(poLineUUID);
                 
-        List<String> isbnList = new ArrayList<String>();
+                List<String> isbnList = new ArrayList<String>();
 				String receivingNote = null;
         
 				if (polDetails != null) {
 					JSONArray polProductIds = polDetails.optJSONArray("productIds");
 					receivingNote = polDetails.optString("receivingNote");
 
-          // Extract ISBNs from POL productIds to display in results
-          Iterator<Object> isbnIterator = polProductIds.iterator();
-          while (isbnIterator.hasNext()) {
-            JSONObject productIdObj = (JSONObject) isbnIterator.next();
-            isbnList.add((String) productIdObj.get("productId"));
-          }
+                    // Extract ISBNs from POL productIds to display in results
+                    Iterator<Object> isbnIterator = polProductIds.iterator();
+                    while (isbnIterator.hasNext()) {
+                        JSONObject productIdObj = (JSONObject) isbnIterator.next();
+                        isbnList.add((String) productIdObj.get("productId"));
+                    }
 				}
 				
 				responseMessage.put("poLineUUID", poLineUUID);
@@ -449,10 +449,7 @@ public class OrderImport {
 				responseMessage.put("vendorCode", vendorCode);
 				responseMessage.put("isbn", isbnList);
 				
-				// barcode if 976 field exists
-				// TOSO: determine how this will be added to inventory. just grab the value for now
-                DataField nineSevenSix = (DataField) record.getVariableField("976");
-				String barcode = marcUtils.getBarcode(nineSevenSix);
+				
 				
 				// add 490 and 830 raw marc fields as a list to response
 				List<String> seriesFields = marcUtils.getSeriesFields(record);
@@ -464,10 +461,57 @@ public class OrderImport {
 				logger.debug("get InstanceResponse");
 				String instanceResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/instances/" + instanceId, token);
 				JSONObject instanceAsJson = new JSONObject(instanceResponse);
+				logger.debug(instanceAsJson.toString(3));
 				String hrid = instanceAsJson.getString("hrid");
                 responseMessage.put("instanceHrid", hrid);
                 responseMessage.put("instanceUUID", instanceId);
-
+                
+                // get barcode from 976 field, if it exists, add it to the inventory item
+                // TOSO: determine how this will be added to inventory. just grab the value for now
+                DataField nineSevenSix = (DataField) record.getVariableField("976");
+                String barcode = marcUtils.getBarcode(nineSevenSix);
+                if (StringUtils.isNotEmpty(barcode)) {
+                    logger.debug("get holdings for instanceId: "+ instanceId);
+                    String holdingsResponse = apiService.callApiGet(baseOkapEndpoint + "holdings-storage/holdings?query=(instanceId==" + instanceId + ")", token);
+                    JSONObject holdingsObject = new JSONObject(holdingsResponse);
+                    logger.debug(holdingsObject.toString(3));
+                    JSONObject holdingsAsJson = new JSONObject(holdingsResponse);
+                    
+                    // get holdings array
+                    JSONArray holdingsArray = holdingsAsJson.getJSONArray("holdingsRecords");
+                    logger.debug("holdingsArray size: "+ holdingsArray.length());
+                    Iterator  holdingsIter = holdingsArray.iterator();
+                    while (holdingsIter.hasNext() ) {
+                        JSONObject holdingsRecord = (JSONObject) holdingsIter.next();
+                        logger.debug("holdings record");
+                        logger.debug(holdingsRecord.toString(3));
+                        String holdingsId = holdingsRecord.getString("id"); 
+                        
+                        logger.debug("get inventory items with holdingsId: "+ holdingsId);
+                        String itemsResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/items?query=(holdingsRecordId=" + holdingsId + ")", token);
+                        JSONObject itemsObject = new JSONObject(itemsResponse);
+                        logger.debug(itemsObject.toString(3));
+                        
+                        JSONArray itemsArray = itemsObject.getJSONArray("items");
+                         
+                        logger.debug("itemsArray size: "+ itemsArray.length());
+                        Iterator itemsIter = itemsArray.iterator();
+                        while (itemsIter.hasNext()) {
+                            JSONObject itemRecord = (JSONObject) itemsIter.next();
+                            itemRecord.put("barcode", barcode);
+                            
+                            String itemId = itemRecord.getString("id");
+                            logger.debug("item record: "+ itemId);
+                            logger.debug(itemRecord.toString(3));
+                            // PUT the item
+                            if (StringUtils.isNotEmpty(itemId)) {
+                                String itemPutResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/items/" + itemId,  itemRecord, token);
+                                
+                            }
+                        }
+                       
+                    }  
+                }
 				// Transform the MARC record into JSON
                 String marcJsonString = marcUtils.recordToMarcJson(record);
                 logger.debug("MARC-JSON " + marcJsonString);
