@@ -9,11 +9,15 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.Ignore; 
+import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class GetCompositeOrderTest extends ApiBaseTest { 
 	
+    boolean debug = false;
+    String harrassUUID = "5cf94601-26cf-17af-be30-34742fff402f";
+    String amazonUUID = "3660cf19-837f-13ce-a300-642a2fff402f";
 
 	public GetCompositeOrderTest() { 
 	} 
@@ -25,25 +29,28 @@ public class GetCompositeOrderTest extends ApiBaseTest {
 	
 	@Test
 	public void testGetOrders() { 
-	     
+	    String userId = "8720f87c-1918-4658-b081-04f165689627"; 
 	    String result = new String();
+	    //String endpoint = getBaseOkapEndpoint() + "orders/composite-orders?limit=3&query=((createdByUserId=" + userId + "))";
+	    String endpoint = getBaseOkapEndpoint() + "orders/composite-orders?limit=10";
 		try {
-			result = getApiService().callApiGet(getBaseOkapEndpoint() + "orders/composite-orders?limit=2", getToken());
+			result = getApiService().callApiGet(endpoint, getToken());
 			JSONObject resultsObj = new JSONObject(result);
-			 
-			//System.out.println(resultsObj.toString(3));
-			 
-			JSONArray jsonArray = resultsObj.getJSONArray("purchaseOrders"); 
-			assertNotNull(jsonArray);
-			assertEquals(jsonArray.length(), 2);
-			//System.out.println("len: "+ jsonArray.length());
+			if (debug) {
+			    System.out.println(resultsObj.toString(3));
+			} else {
+			    JSONArray jsonArray = resultsObj.getJSONArray("purchaseOrders"); 
+			    assertNotNull(jsonArray);
+			    assertTrue(jsonArray.length() > 0);
+			    //System.out.println("len: "+ jsonArray.length());
+			}
 			 
 		} catch (Exception e) {
 			fail(e.getMessage());
 		} 
 	}
 	
-	@Test
+	@Disabled
 	public void testGetOrder() { 
 	     
 	    String result = new String();
