@@ -486,12 +486,12 @@ public class OrderImport {
                         logger.debug("holdings record");
                         logger.debug(holdingsRecord.toString(3));
                         String holdingsId = holdingsRecord.getString("id"); 
-                        String emptyBarcode = "";
-                        logger.info("get inventory items with holdingsId: "+ holdingsId);
+                         
+                        logger.debug("get inventory items with holdingsId: "+ holdingsId);
                         String itemsResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/items?query=((holdingsRecordId=="+ holdingsId +")+not+(barcode=null))", token);
                         //String itemsResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/items?query=(holdingsRecordId==" + holdingsId +")", token);
                         JSONObject itemsObject = new JSONObject(itemsResponse);
-                        logger.info(itemsObject.toString(3));
+                        logger.debug(itemsObject.toString(3));
                         
                         JSONArray itemsArray = itemsObject.getJSONArray("items"); 
                         if (itemsArray.length() > 0) {
