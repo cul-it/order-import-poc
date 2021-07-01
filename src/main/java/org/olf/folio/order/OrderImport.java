@@ -488,14 +488,18 @@ public class OrderImport {
                         String holdingsId = holdingsRecord.getString("id"); 
                          
                         logger.debug("get inventory items with holdingsId: "+ holdingsId);
-                        String itemsResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/items?query=((holdingsRecordId=="+ holdingsId +")+not+(barcode=null))", token);
-                        //String itemsResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/items?query=(holdingsRecordId==" + holdingsId +")", token);
+                        String queryString =  "holdingsRecordId==" +holdingsId+ " not barcode=\"\"";
+                        String encodedQS = URLEncoder.encode(queryString, StandardCharsets.UTF_8.name());
+                        String itemsEndpoint = baseOkapEndpoint + "inventory/items?query=(" + encodedQS + ")";
+                        String itemsResponse = apiService.callApiGet(itemsEndpoint, token);
+                         
                         JSONObject itemsObject = new JSONObject(itemsResponse);
                         logger.debug(itemsObject.toString(3));
                         
-                        JSONArray itemsArray = itemsObject.getJSONArray("items"); 
-                        if (itemsArray.length() > 0) {
-                            JSONObject itemRecord = itemsArray.getJSONObject(0);
+                        JSONArray itemsArray = itemsObject.getJSONArray("items");
+                        Iterator itemsIter = itemsArray.iterator();
+                        while (itemsIter.hasNext()) {
+                            JSONObject itemRecord = (JSONObject) itemsIter.next();
                             itemRecord.put("barcode", barcode);
                             String itemId = itemRecord.getString("id");
                             logger.debug("item record: "+ itemId);
@@ -504,7 +508,7 @@ public class OrderImport {
                             if (StringUtils.isNotEmpty(itemId) && ! itemRecord.has("barcode")) {
                                 logger.info("adding barcode: "+ barcode + " to inventory item "+ itemId);
                                 String itemPutResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/items/" + itemId,  itemRecord, token);
-                                
+                                break;
                             }
                         }
                        
