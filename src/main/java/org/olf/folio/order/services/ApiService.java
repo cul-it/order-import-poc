@@ -2,6 +2,7 @@ package org.olf.folio.order.services;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -107,12 +108,12 @@ public class ApiService {
 		CloseableHttpClient client = HttpClients.custom().build();
 		HttpUriRequest request = RequestBuilder.put()
 				.setUri(url)
-				.setCharset(Charset.defaultCharset())
-				.setEntity(new StringEntity(body.toString(), "UTF8"))
+				//.setCharset(Charset.defaultCharset())
+				.setEntity(new StringEntity(body.toString(), StandardCharsets.UTF_8))
 				.setHeader("x-okapi-tenant", this.tenant)
 				.setHeader("x-okapi-token", token)
-				.setHeader("Accept", "application/json")
-				.setHeader("Content-type", "application/json")
+				//.setHeader("Accept", "application/json")
+				.setHeader("Content-type", "application/json") 
 				.build();
 		
 		//TODO
@@ -120,10 +121,11 @@ public class ApiService {
 		//THE ORDERS-STORAGE ENDOINT WANTS 'TEXT/PLAIN'
 		//THE OTHER API CALL THAT USES PUT,
 		//WANTS 'APPLICATION/JSON'
-		if (url.contains("orders-storage") || url.contains("holdings-storage")) {
-			request.setHeader("Accept", "text/plain");
-		}
+		//if (url.contains("orders-storage") || url.contains("holdings-storage") ) {
+		//	request.setHeader("Accept", "text/plain"); 
+		//}
 		HttpResponse response = client.execute(request);
+		 
 		int responseCode = response.getStatusLine().getStatusCode();
 
 		logger.debug("PUT:");
@@ -135,13 +137,17 @@ public class ApiService {
 			logger.error("Failed PUT");
 			logger.error("BODY");
 			logger.error(body.toString(3));
-			logger.error(response);
+			HttpEntity entity = response.getEntity();
+			String result = EntityUtils.toString(entity);
+			logger.error(result);
 			if (responseCode == 400) {
-			    throw new Exception("Response: " + responseCode +" : "+ body.toString());
+			    throw new Exception("Response: " + responseCode +" : "+ result);
 			} else {
+			    logger.error("Response: " + responseCode);
 			    throw new Exception("Response: " + responseCode);
 			}
 		}
+			
 		return "ok";
 
 	}
