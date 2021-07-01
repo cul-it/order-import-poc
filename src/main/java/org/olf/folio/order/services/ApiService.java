@@ -136,7 +136,11 @@ public class ApiService {
 			logger.error("BODY");
 			logger.error(body.toString(3));
 			logger.error(response);
-			throw new Exception("Response: " + responseCode);
+			if (responseCode == 400) {
+			    throw new Exception("Response: " + responseCode +" : "+ body.toString());
+			} else {
+			    throw new Exception("Response: " + responseCode);
+			}
 		}
 		return "ok";
 
