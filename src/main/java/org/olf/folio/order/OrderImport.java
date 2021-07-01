@@ -497,6 +497,7 @@ public class OrderImport {
                         logger.debug(itemsObject.toString(3));
                         
                         JSONArray itemsArray = itemsObject.getJSONArray("items");
+                        logger.info("items Array size: "+ itemsArray.length());
                         Iterator itemsIter = itemsArray.iterator();
                         while (itemsIter.hasNext()) {
                             JSONObject itemRecord = (JSONObject) itemsIter.next();
@@ -505,9 +506,19 @@ public class OrderImport {
                             logger.debug("item record: "+ itemId);
                             logger.debug(itemRecord.toString(3));
                             // PUT the item
-                            if (StringUtils.isNotEmpty(itemId) && ! itemRecord.has("barcode")) {
+                            if (StringUtils.isNotEmpty(itemId)) {
                                 logger.info("adding barcode: "+ barcode + " to inventory item "+ itemId);
-                                String itemPutResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/items/" + itemId,  itemRecord, token);
+                                String itemPutResponse = new String();
+                                try {
+                                    itemPutResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/items/" + itemId,  itemRecord, token);
+                                } catch (Exception ex) {
+                                    logger.error(ex.getMessage());
+                                    JSONObject errorMessage = new JSONObject();
+                                    errorMessage.put("error", ex.getMessage());
+                                    errorMessage.put("PONumber", poNumberObj.get("poNumber"));
+                                    errorMessages.put(errorMessage);
+                                    return errorMessages;    
+                                }
                                 break;
                             }
                         }
