@@ -197,7 +197,7 @@ public class OrderImport {
 					logger.debug("encodedOrgCode: " + encodedOrgCode);
 
 					String organizationEndpoint = baseOkapEndpoint
-							+ "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+							+ "organizations-storage/organizations?query=(code==" + encodedOrgCode + ")";
 					logger.debug("organizationEndpoint: " + organizationEndpoint);
 					String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
 					JSONObject orgObject = new JSONObject(orgLookupResponse);
