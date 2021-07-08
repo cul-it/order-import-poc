@@ -226,7 +226,8 @@ public class OrderImport {
 				
 				// all items are assumed to be physical
 				JSONObject physical = new JSONObject();
-				physical.put("createInventory", "Instance, Holding, Item");
+				// Holding and Item will be created afterwards via mod-copycat)
+				physical.put("createInventory", "Instance");
 				physical.put("materialType", lookupTable.get(materialTypeName));
 				orderLine.put("physical", physical);
 				orderLine.put("orderFormat", "Physical Resource");
@@ -465,78 +466,27 @@ public class OrderImport {
 				String hrid = instanceAsJson.getString("hrid");
                 responseMessage.put("instanceHrid", hrid);
                 responseMessage.put("instanceUUID", instanceId);
-                
-                // get barcode from 976 field, if it exists, add it to the inventory item
-                // TOSO: determine how this will be added to inventory. just grab the value for now
-                DataField nineSevenSix = (DataField) record.getVariableField("976");
-                String barcode = marcUtils.getBarcode(nineSevenSix);
-                if (StringUtils.isNotEmpty(barcode)) {
-                    logger.debug("get holdings for instanceId: "+ instanceId);
-                    String holdingsResponse = apiService.callApiGet(baseOkapEndpoint + "holdings-storage/holdings?query=(instanceId==" + instanceId + ")", token);
-                    JSONObject holdingsObject = new JSONObject(holdingsResponse);
-                    logger.debug(holdingsObject.toString(3));
-                    JSONObject holdingsAsJson = new JSONObject(holdingsResponse);
-                    
-                    // get holdings array
-                    JSONArray holdingsArray = holdingsAsJson.getJSONArray("holdingsRecords");
-                    logger.debug("holdingsArray size: "+ holdingsArray.length());
-                    Iterator  holdingsIter = holdingsArray.iterator();
-                    while (holdingsIter.hasNext() ) {
-                        JSONObject holdingsRecord = (JSONObject) holdingsIter.next();
-                        logger.debug("holdings record");
-                        logger.debug(holdingsRecord.toString(3));
-                        String holdingsId = holdingsRecord.getString("id"); 
-                         
-                        logger.debug("get inventory items with holdingsId: "+ holdingsId);
-                        String queryString =  "holdingsRecordId==" +holdingsId+ " not barcode=\"\"";
-                        String encodedQS = URLEncoder.encode(queryString, StandardCharsets.UTF_8.name());
-                        String itemsEndpoint = baseOkapEndpoint + "inventory/items?query=(" + encodedQS + ")";
-                        String itemsResponse = apiService.callApiGet(itemsEndpoint, token);
-                         
-                        JSONObject itemsObject = new JSONObject(itemsResponse);
-                        logger.debug(itemsObject.toString(3));
-                        
-                        JSONArray itemsArray = itemsObject.getJSONArray("items");
-                        logger.info("items Array size: "+ itemsArray.length());
-                        Iterator itemsIter = itemsArray.iterator();
-                        while (itemsIter.hasNext()) {
-                            JSONObject itemRecord = (JSONObject) itemsIter.next();
-                            itemRecord.put("barcode", barcode);
-                            String itemId = itemRecord.getString("id");
-                            logger.debug("item record: "+ itemId);
-                            logger.debug(itemRecord.toString(3));
-                            // PUT the item
-                            if (StringUtils.isNotEmpty(itemId)) {
-                                logger.info("adding barcode: "+ barcode + " to inventory item "+ itemId);
-                                String itemPutResponse = new String();
-                                try {
-                                    itemPutResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/items/" + itemId,  itemRecord, token);
-                                } catch (Exception ex) {
-                                    logger.error(ex.getMessage());
-                                    JSONObject errorMessage = new JSONObject();
-                                    errorMessage.put("error", ex.getMessage());
-                                    errorMessage.put("PONumber", poNumberObj.get("poNumber"));
-                                    errorMessages.put(errorMessage);
-                                    return errorMessages;    
-                                }
-                                break;
-                            }
-                        }
-                       
-                    }  
-                }
-				// Transform the MARC record into JSON
+
+                // Transform the MARC record into JSON
                 String marcJsonString = marcUtils.recordToMarcJson(record);
                 logger.debug("MARC-JSON " + marcJsonString);
                 JSONObject marcJsonObject = new JSONObject();
                 marcJsonObject.put("json", marcJsonString);
-				
-                //JSON body for POST to mod-copycat for overlay/update of Inventory Instance created by mod-orders
+
+                // JSON body for POST to mod-copycat
+                // -- for overlay/update of Inventory Instance created by mod-orders
+                // -- and creation of Inventory Holding & Inventory Item
                 JSONObject copycatImportObject = new JSONObject();
                 copycatImportObject.put("internalIdentifier", instanceId);
-                // Use constant for mod-copycat's reference data OCLC profile UUID; avoid another HTTP request
-                copycatImportObject.put("profileId", Constants.COPYCAT_OCLC_PROFILE);
+                copycatImportObject.put("profileId", Constants.COPYCAT_DEFAULT_PROFILE);
                 copycatImportObject.put("record", marcJsonObject);
+                
+                // get barcode from 976$p, if it exists, switch to shelf-ready mod-copycat profile
+                DataField nineSevenSix = (DataField) record.getVariableField("976");
+                String barcode = marcUtils.getBarcode(nineSevenSix);
+                if (StringUtils.isNotEmpty(barcode)) {
+                    copycatImportObject.put("profileId", Constants.COPYCAT_SHELFREADY_PROFILE);
+                }
 
 				// Overlay/Update Inventory Instance via mod-copycat
 				logger.debug("post copycatImportObject");
