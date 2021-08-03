@@ -354,9 +354,10 @@ public class OrderImport {
 				// add fund distribution info
 				JSONArray funds = new JSONArray();
 				JSONObject fundDist = new JSONObject();
+				fundDist.put("code", fundCode);
+				fundDist.put("fundId", fundId);
 				fundDist.put("distributionType", "percentage");
 				fundDist.put("value", 100);
-				fundDist.put("fundId", fundId);
 				funds.put(fundDist);
 				orderLine.put("fundDistribution", funds);
 				
