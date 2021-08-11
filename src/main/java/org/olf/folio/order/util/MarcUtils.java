@@ -17,6 +17,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.marc4j.MarcJsonWriter;
 import org.marc4j.marc.DataField;
+import org.marc4j.marc.MarcFactory;
 import org.marc4j.marc.Record;
 import org.marc4j.marc.Subfield;
 import org.marc4j.marc.VariableField;
@@ -240,7 +241,7 @@ public class MarcUtils {
         } else {
             return null;
         }
-        return barcode;
+        return barcode.trim();
     }
 	
 	public JSONArray getLinks(Record record) {
@@ -441,9 +442,27 @@ public class MarcUtils {
     public String recordToMarcJson(Record record) throws IOException {
       try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
         final MarcJsonWriter writer = new MarcJsonWriter(out);
+        trimBarcode(record);
         writer.write(record);
         writer.close();
         return out.toString();
+      }
+    }
+
+    private void trimBarcode(Record record) {
+      DataField nineSevenSix = (DataField) record.getVariableField("976");
+      String barcode = getBarcode(nineSevenSix);
+
+      // Trim spaces from barcode (976$p)
+      if (barcode != null) {
+        // Remove existing subfield
+        Character barcodeCode = BARCODE.charAt(0);
+        Subfield originalBarcode = nineSevenSix.getSubfield(barcodeCode);
+        nineSevenSix.removeSubfield(originalBarcode);
+
+        // Add new subfield with trimmed barcode
+        MarcFactory factory = MarcFactory.newInstance();
+        nineSevenSix.addSubfield(factory.newSubfield(barcodeCode, barcode));
       }
     }
 }
