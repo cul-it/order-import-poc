@@ -10,8 +10,14 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays; 
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -468,30 +474,48 @@ public class OrderImport {
                 responseMessage.put("instanceHrid", hrid);
                 responseMessage.put("instanceUUID", instanceId);
 
-                // Transform the MARC record into JSON
-                String marcJsonString = marcUtils.recordToMarcJson(record);
-                logger.debug("MARC-JSON " + marcJsonString);
-                JSONObject marcJsonObject = new JSONObject();
-                marcJsonObject.put("json", marcJsonString);
+                JSONObject instanceMetadata = instanceAsJson.getJSONObject("metadata");
 
-                // JSON body for POST to mod-copycat
-                // -- for overlay/update of Inventory Instance created by mod-orders
-                // -- and creation of Inventory Holding & Inventory Item
-                JSONObject copycatImportObject = new JSONObject();
-                copycatImportObject.put("internalIdentifier", instanceId);
-                copycatImportObject.put("profileId", Constants.COPYCAT_DEFAULT_PROFILE);
-                copycatImportObject.put("record", marcJsonObject);
-                
-                // get barcode from 976$p, if it exists, switch to shelf-ready mod-copycat profile
-                DataField nineSevenSix = (DataField) record.getVariableField("976");
-                String barcode = marcUtils.getBarcode(nineSevenSix);
-                if (StringUtils.isNotEmpty(barcode)) {
-                    copycatImportObject.put("profileId", Constants.COPYCAT_SHELFREADY_PROFILE);
+                ZonedDateTime today = ZonedDateTime.now();
+                ZonedDateTime instanceCreatedDate = ZonedDateTime.parse(instanceMetadata.getString("createdDate"));
+                Duration duration = Duration.between(instanceCreatedDate, today);
+
+                logger.info("TODAY:  " + today);
+                logger.info("CREATE: " + instanceCreatedDate);
+                logger.info("DIFF (HRS): " + duration.toHours());
+                logger.info("DIFF (MINS): " + duration.toMinutes());
+                logger.info(getMyContext().getAttribute("baseFolioUrl") + "inventory/view/" + instanceId);
+
+                // Only proceed with overlay of instance (and holdings & item creation) if instance is newly created
+                // -- consider newly created within the last 24 hrs
+                if (duration.toHours() < 24) {
+                    // Transform the MARC record into JSON
+                    String marcJsonString = marcUtils.recordToMarcJson(record);
+                    logger.debug("MARC-JSON " + marcJsonString);
+                    JSONObject marcJsonObject = new JSONObject();
+                    marcJsonObject.put("json", marcJsonString);
+
+                    logger.info("OVERLAY FTW");
+
+                    // JSON body for POST to mod-copycat
+                    // -- for overlay/update of Inventory Instance created by mod-orders
+                    // -- and creation of Inventory Holding & Inventory Item
+                    JSONObject copycatImportObject = new JSONObject();
+                    copycatImportObject.put("internalIdentifier", instanceId);
+                    copycatImportObject.put("profileId", Constants.COPYCAT_DEFAULT_PROFILE);
+                    copycatImportObject.put("record", marcJsonObject);
+
+                    // get barcode from 976$p, if it exists, switch to shelf-ready mod-copycat profile
+                    DataField nineSevenSix = (DataField) record.getVariableField("976");
+                    String barcode = marcUtils.getBarcode(nineSevenSix);
+                    if (StringUtils.isNotEmpty(barcode)) {
+                        copycatImportObject.put("profileId", Constants.COPYCAT_SHELFREADY_PROFILE);
+                    }
+
+                    // Overlay/Update Inventory Instance via mod-copycat
+                    logger.debug("post copycatImportObject");
+                    String copycatResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "copycat/imports", copycatImportObject, token);
                 }
-
-				// Overlay/Update Inventory Instance via mod-copycat
-				logger.debug("post copycatImportObject");
-				String copycatResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "copycat/imports", copycatImportObject, token);
 				
 				responseMessages.put(responseMessage);
 				numRec++;				
