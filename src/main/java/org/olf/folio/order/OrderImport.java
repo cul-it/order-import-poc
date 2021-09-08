@@ -679,7 +679,7 @@ public class OrderImport {
 			logger.debug("encodedOrgCode: " + encodedOrgCode);
 
 			//LOOK UP THE ORGANIZATION
-			String organizationEndpoint = baseOkapiEndpoint + "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+			String organizationEndpoint = baseOkapiEndpoint + "organizations-storage/organizations?query=(code==" + encodedOrgCode + ")";
 			logger.debug("organizationEndpoint: " + organizationEndpoint);
 			String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
 			JSONObject orgObject = new JSONObject(orgLookupResponse);
