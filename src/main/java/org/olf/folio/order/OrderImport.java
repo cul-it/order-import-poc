@@ -487,8 +487,8 @@ public class OrderImport {
                 logger.info(getMyContext().getAttribute("baseFolioUrl") + "inventory/view/" + instanceId);
 
                 // Only proceed with overlay of instance (and holdings & item creation) if instance is newly created
-                // -- consider newly created within the last 24 hrs
-                if (duration.toHours() < 24) {
+                // -- consider newly created within the last hour
+                if (duration.toHours() < 1) {
                     // Transform the MARC record into JSON
                     String marcJsonString = marcUtils.recordToMarcJson(record);
                     logger.debug("MARC-JSON " + marcJsonString);
