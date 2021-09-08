@@ -151,6 +151,7 @@ public class OrderImport {
 		order.put("approved", true);
 		order.put("workflowStatus", "Open");
 		order.put("billTo", billingUUID);
+		order.put("shipTo", billingUUID);
 		
 		JSONArray poLines = new JSONArray();
 		
