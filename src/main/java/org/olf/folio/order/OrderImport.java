@@ -521,6 +521,7 @@ public class OrderImport {
 		
 	    Record record = null;
 	    JSONArray errorMessages = new JSONArray();
+      Integer recordCount = 1;
 		while(reader.hasNext()) {
 			try {
 		    	record = reader.next();    					    
@@ -581,7 +582,7 @@ public class OrderImport {
 		        
 			    //VALIDATE THE ORGANIZATION,  AND FUND
 			    //STOP THE PROCESS IF AN ERRORS WERE FOUND
-			    JSONObject orgValidationResult = validateOrganization(vendorCode, title, token, baseOkapEndpoint);
+			    JSONObject orgValidationResult = validateOrganization(vendorCode, title, token, baseOkapEndpoint, recordCount);
 			    if (orgValidationResult != null) {
 			    	logger.error("organization invalid: "+ vendorCode);
 			    	logger.error(record.toString());
@@ -603,6 +604,7 @@ public class OrderImport {
 		    	errorMessages.put(errorMessage);
 		    	return errorMessages;
 		    }
+      recordCount++;
 		}
 		return errorMessages;
 		
@@ -670,7 +672,7 @@ public class OrderImport {
 	 * @throws InterruptedException
 	 * @throws Exception
 	 */
-	public JSONObject validateOrganization(String orgCode, String title,  String token, String baseOkapiEndpoint ) throws IOException, InterruptedException, Exception {
+	public JSONObject validateOrganization(String orgCode, String title,  String token, String baseOkapiEndpoint, Integer recordCount ) throws IOException, InterruptedException, Exception {
 		JSONObject errorMessage = new JSONObject();
 
 		try {
@@ -686,7 +688,7 @@ public class OrderImport {
 			//---------->VALIDATION: MAKE SURE THE ORGANIZATION CODE EXISTS
 			if (orgObject.getJSONArray("organizations").length() < 1) {
 				logger.error(orgObject.toString(3));
-				errorMessage.put("error", "Organization code in file (" + orgCode + ") does not exist in FOLIO");
+				errorMessage.put("error", "Organization code in record " + recordCount  + " (" + orgCode + ") does not exist in FOLIO");
 				errorMessage.put("title", title);
 				errorMessage.put("PONumber", "~error~");
 				return errorMessage;
