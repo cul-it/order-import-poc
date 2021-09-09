@@ -53,6 +53,7 @@ public class MarcUtils {
     private final String PUBLICATION_DATE = "c"; // 264$c
     
     private final String BARCODE = "p"; // 976$p
+    private final String RECORD_SOURCE = "h"; // 948$h
 
 	public MarcUtils() {
 		// TODO Auto-generated constructor stub
@@ -242,6 +243,23 @@ public class MarcUtils {
             return null;
         }
         return barcode.trim();
+    }
+
+    public String getRecordSource(Record record) {
+        String recordSource = new String();
+        List<DataField> fields = record.getDataFields();
+
+        for (DataField df: fields) {
+            // Need 948 0/ $h
+            char id1 = df.getIndicator1();
+            char id2 = df.getIndicator2();
+
+            if (df.getTag().equals("948") && id1 == '0' && id2 == ' ' ) {
+                recordSource = df.getSubfieldsAsString(RECORD_SOURCE);
+                return recordSource;
+            }
+        }
+        return recordSource;
     }
 	
 	public JSONArray getLinks(Record record) {
