@@ -62,7 +62,7 @@ public class OrderImport {
 		//String permELocationName = (String) getMyContext().getAttribute("permELocation");
 		String noteTypeName = (String) getMyContext().getAttribute("noteType");
 		String materialTypeName = (String) getMyContext().getAttribute("materialType");
-		String billTo = (String) getMyContext().getAttribute("billTo");
+		String billTo = (String) getMyContext().getAttribute("billToDefault");
 		
 		JSONArray envErrors = validateEnvironment();
 		if (envErrors != null) {
@@ -731,9 +731,9 @@ public class OrderImport {
             errMsg.put("error", "fiscalYearCode environment variable not found");
             errors.put(errMsg);
         }
-        if (StringUtils.isEmpty((String) getMyContext().getAttribute("billTo"))) {
+        if (StringUtils.isEmpty((String) getMyContext().getAttribute("billToDefault"))) {
             JSONObject errMsg = new JSONObject();
-            errMsg.put("error", "billTo environment variable not found");
+            errMsg.put("error", "billToDefault environment variable not found");
             errors.put(errMsg);
         }
         if (errors.isEmpty()) {

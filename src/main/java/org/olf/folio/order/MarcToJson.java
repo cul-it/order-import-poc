@@ -298,7 +298,7 @@ public class MarcToJson {
         UUID orderUUID = UUID.randomUUID();        
         Map<Integer, UUID> orderLineMap = new HashMap<Integer, UUID>();
         
-        String billTo = (String) getConfig().getProperty("billTo"); 
+        String billTo = (String) getConfig().getProperty("billToDefault");
         String billingUUID = this.getBillingMap().get(billTo);
         
         order.put("orderType", "One-Time");
@@ -604,9 +604,9 @@ public class MarcToJson {
             errMsg.put("error", "fiscalYearCode environment variable not found");
             errors.put(errMsg);
         }
-        if (StringUtils.isEmpty((String) this.getConfig().getProperty("billTo"))) {
+        if (StringUtils.isEmpty((String) this.getConfig().getProperty("billToDefault"))) {
             JSONObject errMsg = new JSONObject();
-            errMsg.put("error", "billTo environment variable not found");
+            errMsg.put("error", "billToDefault environment variable not found");
             errors.put(errMsg);
         }
         if (errors.isEmpty()) {
