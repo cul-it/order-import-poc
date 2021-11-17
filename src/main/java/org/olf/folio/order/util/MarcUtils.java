@@ -132,7 +132,7 @@ public class MarcUtils {
 	    } else {
 	        location = "olin";
 	    }
-	    return location;
+	    return location.toLowerCase();
 	}
 	
 	public String getRequester(DataField nineEightyOne ) {
