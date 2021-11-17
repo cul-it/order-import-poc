@@ -3,11 +3,11 @@
 # okapi_password = admin
 # tenant = diku
 
-baseOkapEndpoint = https://okapi-cornell-test.folio.ebsco.com/
-baseFolioUrl = https://cornell-training.folio.ebsco.com/
-okapi_username = CHANGE ME
-okapi_password = CHANGE ME
-tenant = CHANGE ME
+baseOkapEndpoint = CHANGEME
+baseFolioUrl = CHANGEME
+okapi_username = CHANGEME
+okapi_password = CHANGEME
+tenant = CHANGEME
 
 permELocation = serv\,remo
 fiscalYearCode = FY2021
@@ -19,4 +19,4 @@ billToDefault = LTS Acquisitions
 billToApprovals = LTS Approvals
 # You will probably want to change this
 uploadFilePath = /tmp/
-buildDir=CHANGE ME
+buildDir=CHANGEME
