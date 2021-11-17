@@ -1,6 +1,14 @@
 # order-import-poc
 Proof of concept workaround needed until FOLIO supports importing MARC records to create orders.
 
+## Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/)
+  > If using Docker Desktop, [ensure filesystem sharing for macOS](https://docs.docker.com/desktop/mac/#file-sharing) or [shared drives for Windows](https://docs.docker.com/desktop/windows/#file-sharing) is configured properly to support mounting files at the path of your working copy for this repo.
+- [Docker Compose](https://docs.docker.com/compose/install/)
+- FOLIO user account with necessary permissions
+  > see [folio-permset.json](folio-permset.json)
+
 ### What does it do?
 * It takes an uploaded file that contains MARC records and creates orders, instances, holdings, items and MARC records for each.
 * It uses the 980 field to get the fund code, vendor code, price, tag, quantity, notes and electronic/print indicator
@@ -26,35 +34,6 @@ Proof of concept workaround needed until FOLIO supports importing MARC records t
 * I've included example MARC files but you will have to update them with your vendor, fund, object codes
 * The first call is a bit slow because it initializes reference values/UUIDs
 
-
-### Permissions
-This app requires a FOLIO user account with the following permissions granted:
-
-* `copycat.imports.post`
-* `finance.budgets.collection.get`
-* `finance.fiscal-years.collection.get`
-* `finance.funds.collection.get`
-* `inventory-storage.classification-types.collection.get`
-* `inventory-storage.contributor-name-types.collection.get`
-* `inventory-storage.contributor-types.collection.get`
-* `inventory-storage.holdings-types.collection.get`
-* `inventory-storage.holdings.collection.get`
-* `inventory-storage.holdings.item.put`
-* `inventory-storage.identifier-types.collection.get`
-* `inventory-storage.instance-types.collection.get`
-* `inventory-storage.loan-types.collection.get`
-* `inventory-storage.locations.collection.get`
-* `inventory-storage.material-types.collection.get`
-* `inventory.all`
-* `note.types.allops`
-* `notes.domain.all`
-* `notes.item.post`
-* `orders.acquisitions-units-assignments.assign`
-* `orders.all`
-* `orders.item.approve`
-* `organizations-storage.organizations.collection.get`
-* `tags.collection.get`
-* `ui-orders.order.create`
 
 ### Lots of areas for improvement including:
 * Better way to get data out of the MARC record to include on the instance. 
