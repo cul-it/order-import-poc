@@ -402,7 +402,7 @@ public class MarcToJson {
                 orderLine.put("physical", physical);
                 orderLine.put("orderFormat", "Physical Resource");
                 cost.put("listUnitPrice", price);
-                cost.put("quantityPhysical", 1);
+                cost.put("quantityPhysical", quantityNo);
                 location.put("quantityPhysical", quantityNo);
                 location.put("locationId", lookupTable.get(locationName + "-location"));
                 locations.put(location);
