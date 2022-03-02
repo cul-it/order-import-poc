@@ -372,6 +372,7 @@ public class OrderImport {
 				JSONObject fundDist = new JSONObject();
 				fundDist.put("code", fundCode);
 				fundDist.put("fundId", fundId);
+				fundDist.put("expenseClassId", Constants.EXPENSE_CLASS);
 				fundDist.put("distributionType", "percentage");
 				fundDist.put("value", 100);
 				funds.put(fundDist);
