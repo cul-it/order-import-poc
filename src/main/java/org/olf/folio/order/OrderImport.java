@@ -234,7 +234,7 @@ public class OrderImport {
 				
 				
 				// POST ORDER LINE
-				//FOLIO WILL CREATE THE INSTANCE, HOLDINGS, ITEM (IF PHYSICAL ITEM)
+				// FOLIO Orders app will create the Instance and Holdings
 				JSONObject orderLine = new JSONObject();
 				JSONObject cost = new JSONObject();
 				JSONObject location = new JSONObject();
@@ -242,8 +242,8 @@ public class OrderImport {
 				
 				// all items are assumed to be physical
 				JSONObject physical = new JSONObject();
-				// Holding and Item will be created afterwards via mod-copycat)
-				physical.put("createInventory", "Instance");
+				// Item will be created afterwards via mod-copycat)
+				physical.put("createInventory", "Instance, Holding");
 				physical.put("materialType", lookupTable.get(materialTypeName));
 				orderLine.put("physical", physical);
 				orderLine.put("orderFormat", "Physical Resource");
@@ -523,7 +523,7 @@ public class OrderImport {
                         copycatImportObject.put("profileId", Constants.COPYCAT_SHELFREADY_PROFILE);
                     }
 
-                    // Overlay/Update Inventory Instance via mod-copycat
+                    // Overlay/Update Inventory Instance & Holding via mod-copycat
                     logger.debug("post copycatImportObject");
                     String copycatResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "copycat/imports", copycatImportObject, token);
                 }
