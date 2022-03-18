@@ -458,9 +458,14 @@ public class OrderImport {
                         isbnList.add((String) productIdObj.get("productId"));
                     }
 				}
+
+        String holdings = apiService.callApiGet(baseOkapEndpoint + "holdings-storage/holdings?limit=0&query=(instanceId==" + instanceId + ")", token);
+				JSONObject holdingsJson = new JSONObject(holdings);
+        int holdingsCount = (int) holdingsJson.get("totalRecords");
 				
 				responseMessage.put("poLineUUID", poLineUUID);
 				responseMessage.put("poLineNumber", poLineNumber);
+				responseMessage.put("holdingsCount", holdingsCount);
 				responseMessage.put("title", title);
 				responseMessage.put("requester", requester);
 				responseMessage.put("internalNote", internalNote);
