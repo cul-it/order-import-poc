@@ -45,6 +45,17 @@
 	color: #a94442 !important;
 }
 
+.holdingsCount {
+  margin-left: 1em;
+  padding: 0.4em;
+  background: #7e3bda;
+  border-radius: 0.3em;
+  color: #fff;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 0.8em;
+}
+
 .metadata {
   margin: .4em 0;
   padding-left: .6em;
@@ -283,7 +294,7 @@ function showname() {
         {{error}}
       {{else}}
         <dl>
-          <dt><a href="${baseFolioUrl}orders/lines/view/{{poLineUUID}}" title="View this PO Line in FOLIO Orders app" target="_blank">{{poLineNumber}}</a></dt>
+          <dt><a href="${baseFolioUrl}orders/lines/view/{{poLineUUID}}" title="View this PO Line in FOLIO Orders app" target="_blank">{{poLineNumber}}</a> <span class="holdingsCount">{{holdingsCount}} Holdings</span></dt>
           <dd><a href="${baseFolioUrl}inventory/view/{{instanceUUID}}" title="View this Instance in FOLIO Inventory app" target="_blank">{{title}}</a></dd>
           <dd class="metadata">{{instanceHrid}}</dd>
           <dd class="metadata">{{isbn}}</dd>
