@@ -10,6 +10,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays; 
 import java.util.HashMap;
@@ -41,6 +43,8 @@ public class OrderImport {
 	private HashMap<String, String> billingMap;
 	private String tenant;
 	private boolean rushPO = false;
+	private String baseOkapEndpoint;
+	private String token;
 	
 	private ApiService apiService;
 	MarcUtils marcUtils = new MarcUtils();
@@ -54,7 +58,7 @@ public class OrderImport {
 		
 		//COLLECT VALUES FROM THE CONFIGURATION FILE
 		// TODO: Fix this typo everywhere... Should be baseOkapiEndpoint
-		String baseOkapEndpoint = (String) getMyContext().getAttribute("baseOkapEndpoint");
+		this.baseOkapEndpoint = (String) getMyContext().getAttribute("baseOkapEndpoint");
 		String apiUsername = (String) getMyContext().getAttribute("okapi_username");
 		String apiPassword = (String) getMyContext().getAttribute("okapi_password");
 		tenant = (String) getMyContext().getAttribute("tenant"); 
@@ -65,9 +69,9 @@ public class OrderImport {
 		String billTo = (String) getMyContext().getAttribute("billTo");
 		
 		JSONArray envErrors = validateEnvironment();
-		if (envErrors != null) {
-		    return envErrors;
-		}
+        if (envErrors != null) {
+            return envErrors;
+        }
 		
 		//GET THE FOLIO TOKEN
 		JSONObject jsonObject = new JSONObject();
@@ -76,7 +80,9 @@ public class OrderImport {
 		jsonObject.put("tenant",tenant);
 		
 		this.apiService = new ApiService(tenant);
-		String token = this.apiService.callApiAuth( baseOkapEndpoint + "authn/login",  jsonObject); 
+		this.token = this.apiService.callApiAuth( this.baseOkapEndpoint + "authn/login",  jsonObject);
+		
+		
 		
 		//GET THE UPLOADED FILE
 		String filePath = (String) myContext.getAttribute("uploadFilePath");
@@ -98,19 +104,19 @@ public class OrderImport {
 		// We don't want to continue if any of the marc records do not contain valid data
 		MarcReader reader = new MarcStreamReader(in);	   
 	    
-	   	JSONArray validateRequiredResult = validateRequiredValues(reader, token, baseOkapEndpoint);
+	   	JSONArray validateRequiredResult = validateRequiredValues(reader);
 	   	if (!validateRequiredResult.isEmpty()) return validateRequiredResult;
 	   	
 		//SAVE REFERENCE TABLE VALUES (JUST LOOKUP THEM UP ONCE)
 	   	logger.debug("Get Lookup table");
 		if (myContext.getAttribute(Constants.LOOKUP_TABLE) == null) {
 			 LookupUtil lookupUtil = new LookupUtil();
-			 lookupUtil.setBaseOkapEndpoint(baseOkapEndpoint);
+			 lookupUtil.setBaseOkapEndpoint(this.baseOkapEndpoint);
 			 lookupUtil.setApiService(apiService);
 			 lookupUtil.load();
-			 this.lookupTable = lookupUtil.getReferenceValues(token);
-			 String billingEndpoint = baseOkapEndpoint+"configurations/entries?query=(configName==tenant.addresses)";
-			 this.billingMap = lookupUtil.getBillingAddresses(billingEndpoint, token);
+			 this.lookupTable = lookupUtil.getReferenceValues(this.token);
+			 String billingEndpoint = this.baseOkapEndpoint+"configurations/entries?query=(configName==tenant.addresses)";
+			 this.billingMap = lookupUtil.getBillingAddresses(billingEndpoint, this.token);
 			 myContext.setAttribute(Constants.LOOKUP_TABLE, lookupTable);
 			 myContext.setAttribute(Constants.BILLINGMAP, billingMap);
 			 
@@ -136,7 +142,7 @@ public class OrderImport {
 	    
 	    //GET THE NEXT PO NUMBER 
 		logger.trace("get next PO number");
-		String poNumber = this.apiService.callApiGet(baseOkapEndpoint + "orders/po-number", token);		
+		String poNumber = this.apiService.callApiGet(this.baseOkapEndpoint + "orders/po-number", this.token);		
 		JSONObject poNumberObj = new JSONObject(poNumber);
 		logger.trace("NEXT PO NUMBER: " + poNumberObj.get("poNumber")); 
         // does this have to be a UUID object?
@@ -199,7 +205,7 @@ public class OrderImport {
 					String organizationEndpoint = baseOkapEndpoint
 							+ "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
 					logger.debug("organizationEndpoint: " + organizationEndpoint);
-					String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
+					String orgLookupResponse = apiService.callApiGet(organizationEndpoint, this.token);
 					JSONObject orgObject = new JSONObject(orgLookupResponse);
 					String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
 					order.put("vendor", vendorId);				
@@ -210,9 +216,14 @@ public class OrderImport {
 				//LOOK UP THE FUND
 				//logger.debug("lookup Fund");
 				String fundEndpoint = baseOkapEndpoint + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
-				String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
+				String fundResponse = this.apiService.callApiGet(fundEndpoint, this.token);
 				JSONObject fundsObject = new JSONObject(fundResponse);
-				String fundId = (String) fundsObject.getJSONArray("funds").getJSONObject(0).get("id");				
+				String fundId = (String) fundsObject.getJSONArray("funds").getJSONObject(0).get("id");
+				
+				//LOOK UP THE Acquisiton method
+                //logger.debug("lookup acquisition method"); 
+				String acquistionMethodString = "Purchase";
+                String acquisitionMethodUUID = getAcquisitionMethodUUID(acquistionMethodString);
 				
 				// CREATING THE PURCHASE ORDER				
 				
@@ -260,7 +271,8 @@ public class OrderImport {
 				orderLine.put("cost", cost);
 				orderLine.put("locations", locations);
 				orderLine.put("titleOrPackage", title);
-				orderLine.put("acquisitionMethod", "Purchase");
+				//orderLine.put("acquisitionMethod", "Purchase");
+				orderLine.put("acquisitionMethod", acquisitionMethodUUID);
 				
 				// get the "internal note", which apparently will be used as a description 
 				String internalNotes =  marcUtils.getInternalNotes(nineEighty);
@@ -392,12 +404,12 @@ public class OrderImport {
 		logger.debug(order.toString(3));
 		
 		//POST THE ORDER AND LINE:
-		String orderResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "orders/composite-orders", order, token);  
+		String orderResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "orders/composite-orders", order, this.token);  
 		 
 		
 		//GET THE UPDATED PURCHASE ORDER FROM THE API AND PULL OUT THE ID FOR THE INSTANCE FOLIO CREATED:
 		logger.debug("getUpdatedPurchaseOrder");
-		String updatedPurchaseOrder = apiService.callApiGet(baseOkapEndpoint + "orders/composite-orders/" +orderUUID.toString() ,token); 
+		String updatedPurchaseOrder = apiService.callApiGet(baseOkapEndpoint + "orders/composite-orders/" +orderUUID.toString() ,this.token); 
 		JSONObject updatedPurchaseOrderJson = new JSONObject(updatedPurchaseOrder);
 		logger.info("updated purchase order...");
 		logger.info(updatedPurchaseOrderJson.toString(3));
@@ -459,7 +471,7 @@ public class OrderImport {
 				
 				// Get the Inventory Instance FOLIO created, so we can render the Instance HRID in the results
 				logger.debug("get InstanceResponse");
-				String instanceResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/instances/" + instanceId, token);
+				String instanceResponse = apiService.callApiGet(baseOkapEndpoint + "inventory/instances/" + instanceId, this.token);
 				JSONObject instanceAsJson = new JSONObject(instanceResponse);
 				logger.debug(instanceAsJson.toString(3));
 				String hrid = instanceAsJson.getString("hrid");
@@ -472,7 +484,7 @@ public class OrderImport {
                 String barcode = marcUtils.getBarcode(nineSevenSix);
                 if (StringUtils.isNotEmpty(barcode)) {
                     logger.debug("get holdings for instanceId: "+ instanceId);
-                    String holdingsResponse = apiService.callApiGet(baseOkapEndpoint + "holdings-storage/holdings?query=(instanceId==" + instanceId + ")", token);
+                    String holdingsResponse = apiService.callApiGet(baseOkapEndpoint + "holdings-storage/holdings?query=(instanceId==" + instanceId + ")", this.token);
                     JSONObject holdingsObject = new JSONObject(holdingsResponse);
                     logger.debug(holdingsObject.toString(3));
                     JSONObject holdingsAsJson = new JSONObject(holdingsResponse);
@@ -491,7 +503,7 @@ public class OrderImport {
                         String queryString =  "holdingsRecordId==" +holdingsId+ " not barcode=\"\"";
                         String encodedQS = URLEncoder.encode(queryString, StandardCharsets.UTF_8.name());
                         String itemsEndpoint = baseOkapEndpoint + "inventory/items?query=(" + encodedQS + ")";
-                        String itemsResponse = apiService.callApiGet(itemsEndpoint, token);
+                        String itemsResponse = apiService.callApiGet(itemsEndpoint, this.token);
                          
                         JSONObject itemsObject = new JSONObject(itemsResponse);
                         logger.debug(itemsObject.toString(3));
@@ -510,7 +522,7 @@ public class OrderImport {
                                 logger.info("adding barcode: "+ barcode + " to inventory item "+ itemId);
                                 String itemPutResponse = new String();
                                 try {
-                                    itemPutResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/items/" + itemId,  itemRecord, token);
+                                    itemPutResponse = apiService.callApiPut(baseOkapEndpoint + "inventory/items/" + itemId,  itemRecord, this.token);
                                 } catch (Exception ex) {
                                     logger.error(ex.getMessage());
                                     JSONObject errorMessage = new JSONObject();
@@ -540,7 +552,7 @@ public class OrderImport {
 
 				// Overlay/Update Inventory Instance via mod-copycat
 				logger.debug("post copycatImportObject");
-				String copycatResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "copycat/imports", copycatImportObject, token);
+				String copycatResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "copycat/imports", copycatImportObject, this.token);
 				
 				responseMessages.put(responseMessage);
 				numRec++;				
@@ -566,7 +578,7 @@ public class OrderImport {
 	
 	// this method validates required values and will return a JSONArray with error messages or an empty array if it passes
 	
-	public JSONArray validateRequiredValues(MarcReader reader,String token, String baseOkapEndpoint ) {
+	public JSONArray validateRequiredValues(MarcReader reader  ) {
 		
 	    Record record = null;
 	    JSONArray errorMessages = new JSONArray();
@@ -630,14 +642,14 @@ public class OrderImport {
 		        
 			    //VALIDATE THE ORGANIZATION,  AND FUND
 			    //STOP THE PROCESS IF AN ERRORS WERE FOUND
-			    JSONObject orgValidationResult = validateOrganization(vendorCode, title, token, baseOkapEndpoint);
+			    JSONObject orgValidationResult = validateOrganization(vendorCode, title );
 			    if (orgValidationResult != null) {
 			    	logger.error("organization invalid: "+ vendorCode);
 			    	logger.error(record.toString());
 			    	errorMessages.put(orgValidationResult);				    
 			    }
 			    				    
-			    JSONObject fundValidationResult = validateFund(fundCode, title, token, baseOkapEndpoint);
+			    JSONObject fundValidationResult = validateFund(fundCode, title );
 			    if (fundValidationResult != null) {
 			    	//logger.error("fundCode invalid: "+ fundCode + " (price: "+ price +")");
 			    	logger.error(record.toString());
@@ -675,15 +687,19 @@ public class OrderImport {
 	//TODO 
 	//THESE VALIDATION METHODS COULD
 	//USE IMPROVEMENT
-	public JSONObject validateFund(String fundCode, String title, String token, String baseOkapiEndpoint) throws IOException, InterruptedException, Exception {
-		
+	public JSONObject validateFund(String fundCode, String title ) throws IOException, InterruptedException, Exception {
+	    JSONObject errorMessage = new JSONObject();
 		//GET CURRENT FISCAL YEAR
-		String fiscalYearCode =  (String) getMyContext().getAttribute("fiscalYearCode");
-		String fundEndpoint = baseOkapiEndpoint + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
 		
-		JSONObject errorMessage = new JSONObject();
+		JSONObject fiscalYearJson = getCurrentFiscalYear();
+		if (fiscalYearJson == null) {
+		    errorMessage.put("error", "Could not obtain current fiscal year form Folio"); 
+		    return errorMessage;
+		}
+		String fiscalYearCode =  fiscalYearJson.getString("code"); 
+		String fundEndpoint = this.baseOkapEndpoint + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))"; 
 		
-		String fundResponse = apiService.callApiGet(fundEndpoint, token);
+		String fundResponse = apiService.callApiGet(fundEndpoint, this.token);
 		JSONObject fundsObject = new JSONObject(fundResponse);
 		//----------->VALIDATION #1: MAKE SURE THE FUND CODE EXISTS
 		if (fundsObject.getJSONArray("funds").length() < 1) {
@@ -695,8 +711,8 @@ public class OrderImport {
 		logger.debug("FUNDS: " + fundsObject.get("funds"));
 		
 		//----------->VALIDATION #2: MAKE SURE THE FUND CODE FOR THE CURRENT FISCAL HAS ENOUGH MONEY
-		String fundBalanceQuery = baseOkapiEndpoint + "finance/budgets?query=(name=="  + fundCode + "-" + fiscalYearCode + ")";
-		String fundBalanceResponse = apiService.callApiGet(fundBalanceQuery, token);
+		String fundBalanceQuery = this.baseOkapEndpoint + "finance/budgets?query=(name=="  + fundCode + "-" + fiscalYearCode + ")";
+		String fundBalanceResponse = apiService.callApiGet(fundBalanceQuery, this.token);
 		JSONObject fundBalanceObject = new JSONObject(fundBalanceResponse);
 		if (fundBalanceObject.getJSONArray("budgets").length() < 1) {
 			errorMessage.put("error", "Fund code in file (" + fundCode + ") does not have a budget");
@@ -711,15 +727,13 @@ public class OrderImport {
 	
 	/**
 	 * @param orgCode
-	 * @param title
-	 * @param token
-	 * @param baseOkapiEndpoint
+	 * @param title 
 	 * @return
 	 * @throws IOException
 	 * @throws InterruptedException
 	 * @throws Exception
 	 */
-	public JSONObject validateOrganization(String orgCode, String title,  String token, String baseOkapiEndpoint ) throws IOException, InterruptedException, Exception {
+	public JSONObject validateOrganization(String orgCode, String title ) throws IOException, InterruptedException, Exception {
 		JSONObject errorMessage = new JSONObject();
 
 		try {
@@ -728,9 +742,9 @@ public class OrderImport {
 			logger.debug("encodedOrgCode: " + encodedOrgCode);
 
 			//LOOK UP THE ORGANIZATION
-			String organizationEndpoint = baseOkapiEndpoint + "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+			String organizationEndpoint = this.baseOkapEndpoint + "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
 			logger.debug("organizationEndpoint: " + organizationEndpoint);
-			String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
+			String orgLookupResponse = apiService.callApiGet(organizationEndpoint, this.token);
 			JSONObject orgObject = new JSONObject(orgLookupResponse);
 			//---------->VALIDATION: MAKE SURE THE ORGANIZATION CODE EXISTS
 			if (orgObject.getJSONArray("organizations").length() < 1) {
@@ -774,11 +788,13 @@ public class OrderImport {
             errMsg.put("error", "api tenant environment variable not found");
             errors.put(errMsg);
         }
+        /**
         if (StringUtils.isEmpty((String) getMyContext().getAttribute("fiscalYearCode"))) {
             JSONObject errMsg = new JSONObject();
             errMsg.put("error", "fiscalYearCode environment variable not found");
             errors.put(errMsg);
         }
+        */
         if (StringUtils.isEmpty((String) getMyContext().getAttribute("billTo"))) {
             JSONObject errMsg = new JSONObject();
             errMsg.put("error", "billTo environment variable not found");
@@ -790,5 +806,63 @@ public class OrderImport {
             return errors;
         }
 	}
+	
+    public JSONObject getCurrentFiscalYear( ) {
+        
+        String fiscalYearEndpoint = this.baseOkapEndpoint + "finance/fiscal-years";
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE;
+        LocalDate now = LocalDate.now();
+        try {
+            String fiscalYearResponse = this.apiService.callApiGet(this.baseOkapEndpoint + "finance/fiscal-years", this.token);
+             
+            JSONObject fiscalYearsObject = new JSONObject(fiscalYearResponse);
+            JSONArray fiscalYearArray = fiscalYearsObject.getJSONArray("fiscalYears");
+            //System.out.println("date: "+ LocalDate.now());
+            for (int i = 0; i < fiscalYearArray.length(); i++) {
+                JSONObject thisFiscalYear = (JSONObject) fiscalYearArray.get(i);
+                // format: 2021-07-01T00:00:00.000+00:00
+                String periodStart  = StringUtils.substringBefore(thisFiscalYear.getString("periodStart"), "T");
+                String periodEnd = StringUtils.substringBefore(  thisFiscalYear.getString("periodEnd"), "T");
+                LocalDate beginDate = LocalDate.parse(periodStart, formatter);
+                LocalDate endDate = LocalDate.parse(periodEnd, formatter);
+                
+                if (beginDate.compareTo(now)* now.compareTo(endDate) >= 0) {
+                    return thisFiscalYear;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return null;
+        }
+    }
+    
+    public String getAcquisitionMethodUUID(String value)  {
+      //LOOK UP THE Acquisiton method
+        //logger.debug("lookup acquisition method");
+        String acquistionMethodString = "Purchase";
+        String acquisitionMethodEndpoint = baseOkapEndpoint + "orders/acquisition-methods?limit=3&offset=0&query=(value==" + value + ")";
+        String acquisitionMethodResponse;
+        try {
+            acquisitionMethodResponse = this.apiService.callApiGet(acquisitionMethodEndpoint, this.token);
+            JSONObject acquisitionMethodsObject = new JSONObject(acquisitionMethodResponse);
+            
+            String acquisitionMethodUUID = (String) acquisitionMethodsObject.getJSONArray("acquisitionMethods").getJSONObject(0).get("id");
+            return acquisitionMethodUUID;
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return null;
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return null;
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            return null;
+        }
+        
+    }
 
 }
