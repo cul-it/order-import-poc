@@ -385,7 +385,10 @@ public class MarcToJson {
                 final String fundEndpoint = this.getEndpoint() + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
                 final String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
                 
-                
+                // LOOK UP THE Acquisiton method
+                // logger.debug("lookup acquisition method");
+                String acquistionMethodString = "Purchase";
+                String acquisitionMethodUUID = getAcquisitionMethodUUID(acquistionMethodString);
                                 
                  
                 // CREATING THE PURCHASE ORDER 
@@ -429,7 +432,8 @@ public class MarcToJson {
                 orderLine.put("cost", cost);
                 orderLine.put("locations", locations);
                 orderLine.put("titleOrPackage", title);
-                orderLine.put("acquisitionMethod", "Purchase");
+                //orderLine.put("acquisitionMethod", "Purchase");
+                orderLine.put("acquisitionMethod", acquisitionMethodUUID);
                 
                 // get the "internal note", which apparently will be used as a description 
                 String internalNotes =  marcUtils.getInternalNotes(nineEighty);
@@ -599,12 +603,14 @@ public class MarcToJson {
             errMsg.put("error", "api tenant environment variable not found");
             errors.put(errMsg);
         }
+        /*
         if (StringUtils.isEmpty((String) this.getConfig().getProperty("fiscalYearCode"))) {
             JSONObject errMsg = new JSONObject();
             errMsg.put("error", "fiscalYearCode environment variable not found");
             errors.put(errMsg);
         }
-        if (StringUtils.isEmpty((String) this.getConfig().getProperty("billToDefault"))) {
+        if (StringUtils.isEmpty((String) this.getConfig().getProperty("billTo"))) {
+
             JSONObject errMsg = new JSONObject();
             errMsg.put("error", "billToDefault environment variable not found");
             errors.put(errMsg);
@@ -615,6 +621,34 @@ public class MarcToJson {
             return errors;
         }
     }
+    
+    public String getAcquisitionMethodUUID(String value)  {
+        //LOOK UP THE Acquisiton method
+          //logger.debug("lookup acquisition method");
+          
+          String acquisitionMethodEndpoint = this.endpoint + "orders/acquisition-methods?limit=3&offset=0&query=(value==" + value + ")";
+          String acquisitionMethodResponse;
+          try {
+              acquisitionMethodResponse = this.apiService.callApiGet(acquisitionMethodEndpoint, this.token);
+              JSONObject acquisitionMethodsObject = new JSONObject(acquisitionMethodResponse);
+              
+              String acquisitionMethodUUID = (String) acquisitionMethodsObject.getJSONArray("acquisitionMethods").getJSONObject(0).get("id");
+              return acquisitionMethodUUID;
+          } catch (IOException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+              return null;
+          } catch (InterruptedException e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+              return null;
+          } catch (Exception e) {
+              // TODO Auto-generated catch block
+              e.printStackTrace();
+              return null;
+          }
+          
+      }
     
     
 }

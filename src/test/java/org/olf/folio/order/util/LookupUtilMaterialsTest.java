@@ -41,7 +41,7 @@ public class LookupUtilMaterialsTest extends LookupUtilBaseTest {
 					System.out.println("id: "+ map.get(key));
 				}
 			} else {
-				String testKey = "Music";
+				String testKey = "Book";
 				assertNotNull(map);
 				assertTrue(map.containsKey(testKey));
 				assertNotNull(map.get(testKey));
