@@ -13,7 +13,8 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays; 
+import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -66,7 +67,8 @@ public class OrderImport {
 		//String permELocationName = (String) getMyContext().getAttribute("permELocation");
 		String noteTypeName = (String) getMyContext().getAttribute("noteType");
 		String materialTypeName = (String) getMyContext().getAttribute("materialType");
-		String billTo = (String) getMyContext().getAttribute("billTo");
+		String billToDefault = (String) getMyContext().getAttribute("billToDefault");
+		String billToApprovals = (String) getMyContext().getAttribute("billToApprovals");
 		
 		JSONArray envErrors = validateEnvironment();
         if (envErrors != null) {
@@ -146,7 +148,6 @@ public class OrderImport {
 		JSONObject poNumberObj = new JSONObject(poNumber);
 		logger.trace("NEXT PO NUMBER: " + poNumberObj.get("poNumber")); 
         // does this have to be a UUID object?
-		String billingUUID = this.billingMap.get(billTo);		
 		
 		// CREATING THE PURCHASE ORDER
 		JSONObject order = new JSONObject();
@@ -156,7 +157,6 @@ public class OrderImport {
 		order.put("id", orderUUID.toString());
 		order.put("approved", true);
 		order.put("workflowStatus", "Open");
-		order.put("billTo", billingUUID);
 		
 		JSONArray poLines = new JSONArray();
 		
@@ -203,7 +203,7 @@ public class OrderImport {
 					logger.debug("encodedOrgCode: " + encodedOrgCode);
 
 					String organizationEndpoint = baseOkapEndpoint
-							+ "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+							+ "organizations-storage/organizations?query=(code==" + encodedOrgCode + ")";
 					logger.debug("organizationEndpoint: " + organizationEndpoint);
 					String orgLookupResponse = apiService.callApiGet(organizationEndpoint, this.token);
 					JSONObject orgObject = new JSONObject(orgLookupResponse);
@@ -212,6 +212,17 @@ public class OrderImport {
 				} catch (UnsupportedEncodingException e) {
 					logger.error(e.getMessage());
 				}
+
+        // Determine billTo/shipTo address
+        String recordSource = marcUtils.getRecordSource(record);
+        String billingUUID = new String();
+        if (recordSource.equals("appr")) {
+            billingUUID = this.billingMap.get(billToApprovals);
+        } else {
+            billingUUID = this.billingMap.get(billToDefault);
+        }
+        order.put("billTo", billingUUID);
+        order.put("shipTo", billingUUID);
 				
 				//LOOK UP THE FUND
 				//logger.debug("lookup Fund");
@@ -229,7 +240,7 @@ public class OrderImport {
 				
 				
 				// POST ORDER LINE
-				//FOLIO WILL CREATE THE INSTANCE, HOLDINGS, ITEM (IF PHYSICAL ITEM)
+				// FOLIO Orders app will create the Instance and Holdings
 				JSONObject orderLine = new JSONObject();
 				JSONObject cost = new JSONObject();
 				JSONObject location = new JSONObject();
@@ -237,12 +248,13 @@ public class OrderImport {
 				
 				// all items are assumed to be physical
 				JSONObject physical = new JSONObject();
-				physical.put("createInventory", "Instance, Holding, Item");
+				// Item will be created afterwards via mod-copycat)
+				physical.put("createInventory", "Instance, Holding");
 				physical.put("materialType", lookupTable.get(materialTypeName));
 				orderLine.put("physical", physical);
 				orderLine.put("orderFormat", "Physical Resource");
 				cost.put("listUnitPrice", price);
-				cost.put("quantityPhysical", 1);
+				cost.put("quantityPhysical", quantityNo);
 				location.put("quantityPhysical", quantityNo);
 				location.put("locationId", lookupTable.get(locationName + "-location"));
 				locations.put(location);
@@ -365,9 +377,11 @@ public class OrderImport {
 				// add fund distribution info
 				JSONArray funds = new JSONArray();
 				JSONObject fundDist = new JSONObject();
+				fundDist.put("code", fundCode);
+				fundDist.put("fundId", fundId);
+				fundDist.put("expenseClassId", Constants.EXPENSE_CLASS);
 				fundDist.put("distributionType", "percentage");
 				fundDist.put("value", 100);
-				fundDist.put("fundId", fundId);
 				funds.put(fundDist);
 				orderLine.put("fundDistribution", funds);
 				
@@ -451,9 +465,14 @@ public class OrderImport {
                         isbnList.add((String) productIdObj.get("productId"));
                     }
 				}
+
+        String holdings = apiService.callApiGet(baseOkapEndpoint + "holdings-storage/holdings?limit=0&query=(instanceId==" + instanceId + ")", token);
+				JSONObject holdingsJson = new JSONObject(holdings);
+        int holdingsCount = (int) holdingsJson.get("totalRecords");
 				
 				responseMessage.put("poLineUUID", poLineUUID);
 				responseMessage.put("poLineNumber", poLineNumber);
+				responseMessage.put("holdingsCount", holdingsCount);
 				responseMessage.put("title", title);
 				responseMessage.put("requester", requester);
 				responseMessage.put("internalNote", internalNote);
@@ -553,6 +572,7 @@ public class OrderImport {
 				// Overlay/Update Inventory Instance via mod-copycat
 				logger.debug("post copycatImportObject");
 				String copycatResponse = apiService.callApiPostWithUtf8(baseOkapEndpoint + "copycat/imports", copycatImportObject, this.token);
+
 				
 				responseMessages.put(responseMessage);
 				numRec++;				
@@ -582,6 +602,7 @@ public class OrderImport {
 		
 	    Record record = null;
 	    JSONArray errorMessages = new JSONArray();
+      Integer recordCount = 1;
 		while(reader.hasNext()) {
 			try {
 		    	record = reader.next();    					    
@@ -664,6 +685,7 @@ public class OrderImport {
 		    	errorMessages.put(errorMessage);
 		    	return errorMessages;
 		    }
+      recordCount++;
 		}
 		return errorMessages;
 		
@@ -749,7 +771,7 @@ public class OrderImport {
 			//---------->VALIDATION: MAKE SURE THE ORGANIZATION CODE EXISTS
 			if (orgObject.getJSONArray("organizations").length() < 1) {
 				logger.error(orgObject.toString(3));
-				errorMessage.put("error", "Organization code in file (" + orgCode + ") does not exist in FOLIO");
+				errorMessage.put("error", "Organization code in record " + recordCount  + " (" + orgCode + ") does not exist in FOLIO");
 				errorMessage.put("title", title);
 				errorMessage.put("PONumber", "~error~");
 				return errorMessage;
@@ -797,7 +819,7 @@ public class OrderImport {
         */
         if (StringUtils.isEmpty((String) getMyContext().getAttribute("billTo"))) {
             JSONObject errMsg = new JSONObject();
-            errMsg.put("error", "billTo environment variable not found");
+            errMsg.put("error", "billToDefault environment variable not found");
             errors.put(errMsg);
         }
         if (errors.isEmpty()) {

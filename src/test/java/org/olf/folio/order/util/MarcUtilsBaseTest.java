@@ -32,6 +32,7 @@ public class MarcUtilsBaseTest {
     protected String harrassowitz;
     protected String bksFO;
     protected String shelfReadyAux;
+    protected String approvals;
 
     MarcUtils marcUtils = new MarcUtils();
     List<String> fnames = new ArrayList<String>();
@@ -48,6 +49,7 @@ public class MarcUtilsBaseTest {
         this.harrassowitz = this.buildDir + "/marc-test-files/harrassowitz_9-records_2021-03-10.mrc";
         this.bksFO = this.buildDir + "/marc-test-files/w.j.bksFO.1.mrc";
         this.shelfReadyAux = this.buildDir + "/marc-test-files/shelfreadyAux.mrc";
+        this.approvals = this.buildDir + "/marc-test-files/approvals.mrc";
         
         fnames.add(this.harrass);
         fnames.add(this.casalini);

@@ -16,6 +16,7 @@ services:
       - textForElectronicResources=${textForElectronicResources}
       - noteType=${noteType}
       - materialType=${materialType}
-      - billTo=${billTo}
+      - billToDefault=${billToDefault}
+      - billToApprovals=${billToApprovals}
     ports:
       - 8080:8080

@@ -1,9 +1,9 @@
 FROM maven:3.6.3-openjdk-15-slim as maven
 
 COPY ./pom.xml ./pom.xml
-COPY ./src ./src
-
 RUN mvn dependency:go-offline -B
+
+COPY ./src ./src
 RUN mvn package -DskipTests=true
 
 FROM jetty

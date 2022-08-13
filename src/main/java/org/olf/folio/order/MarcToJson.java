@@ -298,7 +298,7 @@ public class MarcToJson {
         UUID orderUUID = UUID.randomUUID();        
         Map<Integer, UUID> orderLineMap = new HashMap<Integer, UUID>();
         
-        String billTo = (String) getConfig().getProperty("billTo"); 
+        String billTo = (String) getConfig().getProperty("billToDefault");
         String billingUUID = this.getBillingMap().get(billTo);
         
         order.put("orderType", "One-Time");
@@ -368,7 +368,7 @@ public class MarcToJson {
                     logger.debug("encodedOrgCode: " + encodedOrgCode);
 
                     String organizationEndpoint = this.getEndpoint()
-                            + "organizations-storage/organizations?query=(code=" + encodedOrgCode + ")";
+                            + "organizations-storage/organizations?query=(code==" + encodedOrgCode + ")";
                     logger.debug("organizationEndpoint: " + organizationEndpoint);
                     String orgLookupResponse = apiService.callApiGet(organizationEndpoint, token);
                     JSONObject orgObject = new JSONObject(orgLookupResponse);
@@ -405,7 +405,7 @@ public class MarcToJson {
                 orderLine.put("physical", physical);
                 orderLine.put("orderFormat", "Physical Resource");
                 cost.put("listUnitPrice", price);
-                cost.put("quantityPhysical", 1);
+                cost.put("quantityPhysical", quantityNo);
                 location.put("quantityPhysical", quantityNo);
                 location.put("locationId", lookupTable.get(locationName + "-location"));
                 locations.put(location);
@@ -609,10 +609,10 @@ public class MarcToJson {
             errMsg.put("error", "fiscalYearCode environment variable not found");
             errors.put(errMsg);
         }
-        */
         if (StringUtils.isEmpty((String) this.getConfig().getProperty("billTo"))) {
+
             JSONObject errMsg = new JSONObject();
-            errMsg.put("error", "billTo environment variable not found");
+            errMsg.put("error", "billToDefault environment variable not found");
             errors.put(errMsg);
         }
         if (errors.isEmpty()) {

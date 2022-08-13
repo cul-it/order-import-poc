@@ -17,6 +17,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.marc4j.MarcJsonWriter;
 import org.marc4j.marc.DataField;
+import org.marc4j.marc.MarcFactory;
 import org.marc4j.marc.Record;
 import org.marc4j.marc.Subfield;
 import org.marc4j.marc.VariableField;
@@ -52,6 +53,7 @@ public class MarcUtils {
     private final String PUBLICATION_DATE = "c"; // 264$c
     
     private final String BARCODE = "p"; // 976$p
+    private final String RECORD_SOURCE = "h"; // 948$h
 
 	public MarcUtils() {
 		// TODO Auto-generated constructor stub
@@ -130,7 +132,7 @@ public class MarcUtils {
 	    } else {
 	        location = "olin";
 	    }
-	    return location;
+	    return location.toLowerCase();
 	}
 	
 	public String getRequester(DataField nineEightyOne ) {
@@ -240,7 +242,24 @@ public class MarcUtils {
         } else {
             return null;
         }
-        return barcode;
+        return barcode.trim();
+    }
+
+    public String getRecordSource(Record record) {
+        String recordSource = new String();
+        List<DataField> fields = record.getDataFields();
+
+        for (DataField df: fields) {
+            // Need 948 0/ $h
+            char id1 = df.getIndicator1();
+            char id2 = df.getIndicator2();
+
+            if (df.getTag().equals("948") && id1 == '0' && id2 == ' ' ) {
+                recordSource = df.getSubfieldsAsString(RECORD_SOURCE);
+                return recordSource;
+            }
+        }
+        return recordSource;
     }
 	
 	public JSONArray getLinks(Record record) {
@@ -441,9 +460,27 @@ public class MarcUtils {
     public String recordToMarcJson(Record record) throws IOException {
       try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
         final MarcJsonWriter writer = new MarcJsonWriter(out);
+        trimBarcode(record);
         writer.write(record);
         writer.close();
         return out.toString();
+      }
+    }
+
+    private void trimBarcode(Record record) {
+      DataField nineSevenSix = (DataField) record.getVariableField("976");
+      String barcode = getBarcode(nineSevenSix);
+
+      // Trim spaces from barcode (976$p)
+      if (barcode != null) {
+        // Remove existing subfield
+        Character barcodeCode = BARCODE.charAt(0);
+        Subfield originalBarcode = nineSevenSix.getSubfield(barcodeCode);
+        nineSevenSix.removeSubfield(originalBarcode);
+
+        // Add new subfield with trimmed barcode
+        MarcFactory factory = MarcFactory.newInstance();
+        nineSevenSix.addSubfield(factory.newSubfield(barcodeCode, barcode));
       }
     }
 }
