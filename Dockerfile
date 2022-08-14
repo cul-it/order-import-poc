@@ -6,7 +6,7 @@ RUN mvn dependency:go-offline -B
 COPY ./src ./src
 RUN mvn package -DskipTests=true
 
-FROM jetty
+FROM jetty:10
 
 WORKDIR $JETTY_BASE
 
