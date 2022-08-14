@@ -429,7 +429,7 @@ public class MarcToJson {
                 orderLine.put("cost", cost);
                 orderLine.put("locations", locations);
                 orderLine.put("titleOrPackage", title);
-                orderLine.put("acquisitionMethod", "Purchase");
+                orderLine.put("acquisitionMethod", "df26d81b-9d63-4ff8-bf41-49bf75cfa70e");
                 
                 // get the "internal note", which apparently will be used as a description 
                 String internalNotes =  marcUtils.getInternalNotes(nineEighty);
