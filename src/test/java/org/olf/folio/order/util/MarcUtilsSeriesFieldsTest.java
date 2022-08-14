@@ -20,7 +20,7 @@ import org.marc4j.marc.Record;
  */
 public class MarcUtilsSeriesFieldsTest extends MarcUtilsBaseTest { 
     
-    boolean debug = false; 
+    boolean debug = true; 
     
     @Test
     public void testGetSeriesFields() { 

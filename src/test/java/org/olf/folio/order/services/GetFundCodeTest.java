@@ -8,13 +8,11 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.junit.Ignore;
-import org.junit.jupiter.api.Disabled;
+import org.junit.Ignore; 
 import org.junit.jupiter.api.Test; 
 
 public class GetFundCodeTest extends ApiBaseTest { 
 	
-    boolean debug = false;
 
 	public GetFundCodeTest() {
 		// TODO Auto-generated constructor stub
@@ -25,32 +23,28 @@ public class GetFundCodeTest extends ApiBaseTest {
 		//
 	} 
 	
-	@Disabled
+	@Test
 	public void testGetAllFundCode() {
 		 
 		
-		String fundEndpoint = getBaseOkapEndpoint() + "finance/funds?limit=200";
+		String fundEndpoint = getBaseOkapEndpoint() + "finance/funds?limit=1";
 		try {
 			
 			String fundResponse = getApiService().callApiGet(fundEndpoint, getToken());
 			JSONObject fundsObject = new JSONObject(fundResponse);
 			//System.out.println(fundsObject.toString(3));
 			JSONArray fundsArray = fundsObject.getJSONArray("funds");
-			if (debug) {
-			    for (int i=0; i < fundsArray.length(); i++) {
-	              JSONObject fundObj = (JSONObject) fundsArray.get(i);
-	              System.out.println("code: "+ fundObj.get("code"));
-	              System.out.println("name: "+ fundObj.get("name"));
-	              System.out.println("id: "+ fundObj.get("id"));
-	              System.out.println();
-	            }    
-			} else {
-			    assertNotNull(fundsArray);
-			    assertEquals(fundsArray.length(), 1);
-			   
-			    String fundId = (String) fundsArray.getJSONObject(0).get("id");
-			    assertNotNull(fundId);
-			}
+			assertNotNull(fundsArray);
+			assertEquals(fundsArray.length(), 1);
+			//for (int i=0; i < fundsArray.length(); i++) {
+			//	JSONObject fundObj = (JSONObject) fundsArray.get(i);
+			//	System.out.println("code: "+ fundObj.get("code"));
+			//	System.out.println("name: "+ fundObj.get("name"));
+			//	System.out.println("id: "+ fundObj.get("id"));
+			//	System.out.println();
+			//}
+			String fundId = (String) fundsArray.getJSONObject(0).get("id");
+			assertNotNull(fundId);
 		} catch (Exception e) {
 			fail(e.getMessage());
 		}
@@ -59,16 +53,14 @@ public class GetFundCodeTest extends ApiBaseTest {
 	@Test
 	public void testGetFundCode() {
 		 
-		//String fundCode = "1010";
-		String fundCode = "p2651";
+		String fundCode = "1010";
+		//String fundCode = "p2755";
 		String fundEndpoint = getBaseOkapEndpoint() + "finance/funds?limit=3&offset=0&query=((code='" + fundCode + "'))";
 		try { 
 		   String fundResponse = getApiService().callApiGet(fundEndpoint, getToken());
 		   JSONObject fundsObject = new JSONObject(fundResponse);
 		   JSONArray fundsArray = fundsObject.getJSONArray("funds");
-		   if (debug) {
-		      System.out.println(fundsObject.toString(3));
-		   }    
+		   //System.out.println(fundsObject.toString(3));
 		   String returnCode = (String) fundsArray.getJSONObject(0).get("code");
 		   assertEquals(fundCode, returnCode);
 		} catch (Exception e) {
