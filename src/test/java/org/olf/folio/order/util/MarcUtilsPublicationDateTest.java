@@ -17,17 +17,11 @@ public class MarcUtilsPublicationDateTest extends MarcUtilsBaseTest {
 	@Test
 	public void testGetPublicationDate() {
 	    List<String> myFnames = new ArrayList<String>();
-        myFnames.add(this.singleharrass); 
+        myFnames.add(this.amazonFO); 
 		try {
-		    for (String fname: myFnames) {
-		        if (debug) {
-                    System.out.println("fname = "+ fname);
-                }
+		    for (String fname: this.fnames) {
     			List<Record> records = getRecords(fname);
     			for (Record record: records) {
-    			    if (debug) {
-                        System.out.println(record.toString());
-                    }
     				DataField df = (DataField) record.getVariableField("264");
     				String pubDate = marcUtils.getPublicationDate(df);
     				if (debug) {

@@ -38,7 +38,7 @@ public class LookupUtilNoteTest extends LookupUtilBaseTest {
 					System.out.println("id: "+ map.get(key));
 				}
 			} else {
-				String testKey = "General Note";
+				String testKey = "General note";
 				assertNotNull(map);
 				assertTrue(map.containsKey(testKey));
 				assertNotNull(map.get(testKey));
