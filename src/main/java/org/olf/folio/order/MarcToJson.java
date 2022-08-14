@@ -603,7 +603,7 @@ public class MarcToJson {
             errMsg.put("error", "api tenant environment variable not found");
             errors.put(errMsg);
         }
-        
+        /*
         if (StringUtils.isEmpty((String) this.getConfig().getProperty("fiscalYearCode"))) {
             JSONObject errMsg = new JSONObject();
             errMsg.put("error", "fiscalYearCode environment variable not found");
