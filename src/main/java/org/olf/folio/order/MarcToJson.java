@@ -597,13 +597,8 @@ public class MarcToJson {
         if (StringUtils.isEmpty((String) this.getConfig().getProperty("tenant"))) {
             JSONObject errMsg = new JSONObject();
             errMsg.put("error", "api tenant environment variable not found");
-            errors.put(errMsg);
-        }
-        if (StringUtils.isEmpty((String) this.getConfig().getProperty("fiscalYearCode"))) {
-            JSONObject errMsg = new JSONObject();
-            errMsg.put("error", "fiscalYearCode environment variable not found");
-            errors.put(errMsg);
-        }
+            errors.put(errMsg); 
+        } 
         if (StringUtils.isEmpty((String) this.getConfig().getProperty("billToDefault"))) {
             JSONObject errMsg = new JSONObject();
             errMsg.put("error", "billToDefault environment variable not found");
