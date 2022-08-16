@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.marc4j.MarcException;
 import org.marc4j.MarcJsonWriter;
 import org.marc4j.marc.DataField;
 import org.marc4j.marc.MarcFactory;
@@ -76,19 +77,22 @@ public class MarcUtils {
 	 * @param nineEightyOne
 	 * @return
 	 */
-	public String getPrice(DataField nineEightyOne) {
+	public String getPrice(DataField nineEightyOne) throws Exception {
         String price = new String();
         if (nineEightyOne != null) {
             price = nineEightyOne.getSubfieldsAsString(PRICE);
             if (price == null) {
-                price = "0.00";
+                throw new MarcException("Price missing from NineEightyOne field");    
             } else  {
-                return normalizePrice(price);
+                try {
+                   return normalizePrice(price);
+                } catch (Exception e) {
+                   throw e;  
+                }
             }
         } else {
-            price = "0.00";   
-        }
-        return price;
+            throw new MarcException("price (981$i) field missing");   
+        } 
     }
 	
 	public String getQuantity(DataField nineEighty ) {
@@ -432,14 +436,14 @@ public class MarcUtils {
         return seriesFields;
     }
 	
-	public String normalizePrice(String priceStr) {
-	    try {
-	       double f = Double.parseDouble(priceStr);
-	       return String.format("%.2f", new BigDecimal(f));
-	    } catch (NumberFormatException e) {
-	        return "0.00";
-	    }
-	}
+    public String normalizePrice(String priceStr) throws NumberFormatException {
+        try {
+            double f = Double.parseDouble(priceStr);
+            return String.format("%.2f", new BigDecimal(f));
+        } catch (NumberFormatException e) {            
+            throw new NumberFormatException("Price format is invalid. price is: "+ priceStr);
+        }
+    }
 	
 	public String matchYear(String pubDate) {
         String year = new String();
