@@ -17,7 +17,9 @@ import org.junit.Ignore;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-public class GetHoldingsTest extends ApiBaseTest {  
+public class GetHoldingsTest extends ApiBaseTest { 
+    
+    boolean debug = false;
 	
 	@Ignore
 	public void nullTest() {
@@ -34,45 +36,43 @@ public class GetHoldingsTest extends ApiBaseTest {
 		try { 
 		    String holdingsResponse = getApiService().callApiGet(holdingsEndpoint, getToken());
 		    JSONObject holdingsObject = new JSONObject(holdingsResponse);
-		    //System.out.println(holdingsObject.toString(3));
+		    if (debug) System.out.println(holdingsObject.toString(3));
 		    JSONObject holdingsAsJson = new JSONObject(holdingsResponse);
 		    
 		     
 		    JSONArray holdingsArray = holdingsAsJson.getJSONArray("holdingsRecords");
-		    System.out.println("holdingsArray size: "+ holdingsArray.length());
+		    if (debug) System.out.println("holdingsArray size: "+ holdingsArray.length());
 		    
 		    Iterator  holdingsIter = holdingsArray.iterator();
 		    while (holdingsIter.hasNext() ) {
 		        JSONObject holdingsRecord = (JSONObject) holdingsIter.next();
 		        String holdingsId = holdingsRecord.getString("id");
-	            System.out.println("holdingsId: "+ holdingsId);
+		        if (debug) System.out.println("holdingsId: "+ holdingsId);
 	             
 	            String queryString =  "holdingsRecordId==" +holdingsId+ " not barcode=\"\"";
 	            String encodedQS = URLEncoder.encode(queryString, StandardCharsets.UTF_8.name());
 	            String itemsEndpoint = getBaseOkapEndpoint() + "inventory/items?query=(" + encodedQS + ")"; 
-	            System.out.println("itemsEndpoint: "+ itemsEndpoint);
+	            if (debug) System.out.println("itemsEndpoint: "+ itemsEndpoint);
 	            String itemsResponse = getApiService().callApiGet(itemsEndpoint, getToken());
 	            //System.out.println("itemsObject");
 	            JSONObject itemsObject = new JSONObject(itemsResponse);
 	            //System.out.println(itemsObject.toString(3));
 	            
 	            JSONArray itemsArray = itemsObject.getJSONArray("items");
-	            System.out.println("number of items: "+itemsArray.length());
+	            if (debug) System.out.println("number of items: "+itemsArray.length());
                 Iterator itemsIter = itemsArray.iterator();
                 while (itemsIter.hasNext()) {
                     JSONObject itemRecord = (JSONObject) itemsIter.next();
                      
                     String itemId = itemRecord.getString("id");
-                    System.out.println("item record: "+ itemId);
-                    System.out.println(itemRecord.toString(3));
+                    if (debug) {
+                        System.out.println("item record: "+ itemId);
+                        System.out.println(itemRecord.toString(3));
+                    }
                      
                 }
-	            
 		       
-		    }
-		     
-		     
-		     
+		    } 
 		     
 		} catch (Exception e) {
 		    e.printStackTrace();

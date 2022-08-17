@@ -54,216 +54,219 @@ public class OrderImport {
 	private ApiService apiService;
 	MarcUtils marcUtils = new MarcUtils();
 	
-	public  JSONArray  upload(String fileName) throws IOException, InterruptedException, Exception {
-	    long start = 0L; // to be used for timing
-        long end = 0L;  // to be used for timing
-		logger.debug("...starting...");
-		JSONArray responseMessages = new JSONArray();
-		JSONArray errorMessages = new JSONArray();
-		
-		//COLLECT VALUES FROM THE CONFIGURATION FILE
-		// TODO: Fix this typo everywhere... Should be baseOkapiEndpoint
-		this.baseOkapEndpoint = (String) getMyContext().getAttribute("baseOkapEndpoint");
-		String apiUsername = (String) getMyContext().getAttribute("okapi_username");
-		String apiPassword = (String) getMyContext().getAttribute("okapi_password");
-		tenant = (String) getMyContext().getAttribute("tenant"); 
-		// we might need this later to validate if resources are electronic...leave commented out
-		//String permELocationName = (String) getMyContext().getAttribute("permELocation");
-		String noteTypeName = (String) getMyContext().getAttribute("noteType");
-		String materialTypeName = (String) getMyContext().getAttribute("materialType");
-		String billToDefault = (String) getMyContext().getAttribute("billToDefault");
-		String billToApprovals = (String) getMyContext().getAttribute("billToApprovals");
-		
-		JSONArray envErrors = validateEnvironment();
-		if (envErrors != null) {
-		    return envErrors;
-		}
-		
-		//GET THE FOLIO TOKEN
-		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("username", apiUsername);
-		jsonObject.put("password", apiPassword);
-		jsonObject.put("tenant",tenant);
-		
-		this.apiService = new ApiService(tenant);
-		this.token = this.apiService.callApiAuth( baseOkapEndpoint + "authn/login",  jsonObject); 
-		
-		//GET THE UPLOADED FILE
-		String filePath = (String) myContext.getAttribute("uploadFilePath");
-		InputStream in = null;		
-		//MAKE SURE A FILE WAS UPLOADED
-		InputStream is = null;
-		if (fileName != null) {
-			in = new FileInputStream(filePath + fileName);			
-		} else {
-			JSONObject errorMessage = new JSONObject();
-			errorMessage.put("error", "no input file provided");
-			errorMessage.put("PONumber", "~error~");
-			errorMessages.put(errorMessage);
-			return errorMessages;
-		}
-		
-		//READ THE MARC RECORD FROM THE FILE AND VALIDATE IT
-		//VALIDATES THE FUND CODE and  VENDOR CODE DATA
-		// We don't want to continue if any of the marc records do not contain valid data
-		MarcReader reader = new MarcStreamReader(in);	   
-	    
-	   	JSONArray validateRequiredResult = validateRequiredValues(reader);
-	   	if (!validateRequiredResult.isEmpty()) return validateRequiredResult;
-	   	
-		//SAVE REFERENCE TABLE VALUES (JUST LOOKUP THEM UP ONCE)
-	   	logger.debug("Get Lookup table");
-		if (myContext.getAttribute(Constants.LOOKUP_TABLE) == null) {
-			 LookupUtil lookupUtil = new LookupUtil();
-			 lookupUtil.setBaseOkapEndpoint(this.baseOkapEndpoint);
-			 lookupUtil.setApiService(apiService);
-			 lookupUtil.load();
-			 this.lookupTable = lookupUtil.getReferenceValues(this.token);
-			 String billingEndpoint = this.baseOkapEndpoint+"configurations/entries?query=(configName==tenant.addresses)";
-			 this.billingMap = lookupUtil.getBillingAddresses(billingEndpoint, this.token);
-			 myContext.setAttribute(Constants.LOOKUP_TABLE, lookupTable);
-			 myContext.setAttribute(Constants.BILLINGMAP, billingMap);
-			 
-			 
-			 logger.debug("put lookup table in context");
-		} else {
-			 this.lookupTable = (HashMap<String, String>) myContext.getAttribute(Constants.LOOKUP_TABLE);
-			 this.billingMap = (HashMap<String, String>) myContext.getAttribute(Constants.BILLINGMAP);
-			 logger.debug("got lookup table from context");
-		}
-		String ISBNId = this.lookupTable.get("ISBN");
-		String personalNameTypeId = this.lookupTable.get("Personal name");
-		
-		
-		// READ THE MARC RECORD FROM THE FILE
-		in = new FileInputStream(filePath + fileName);
-		reader = new MarcStreamReader(in);
-		
-		// GENERATE UUID for the PO
-	   
-	    UUID orderUUID = UUID.randomUUID();
-	    String vendorCode = new String();
-	    
-	    //GET THE NEXT PO NUMBER 
-		logger.trace("get next PO number");
-		String poNumber = this.apiService.callApiGet(baseOkapEndpoint + "orders/po-number", this.token);		
-		JSONObject poNumberObj = new JSONObject(poNumber);
-		logger.trace("NEXT PO NUMBER: " + poNumberObj.get("poNumber")); 
-        // does this have to be a UUID object?
-		
-		// CREATING THE PURCHASE ORDER
-		JSONObject order = new JSONObject();
-		
-		order.put("orderType", "One-Time");
-		order.put("reEncumber", false);
-		order.put("id", orderUUID.toString());
-		order.put("approved", true);
-		order.put("workflowStatus", "Open");
-		
-		JSONArray poLines = new JSONArray();
-		
-		// map of records with orderline uuid as key
-		HashMap<String, Record> recordMap = new HashMap<String, Record>();
-		
-		// iterator over records in the marc file.
-	     
-		logger.debug("reading marc file");
-		int numRec = 0;
-		
-		while (reader.hasNext()) {
-			try {
-				Record record = reader.next();
-				//logger.debug(record.toString());				
-				 
-				DataField twoFourFive = (DataField) record.getVariableField("245");
-				DataField nineEighty = (DataField) record.getVariableField("980");
-			    DataField nineFiveTwo = (DataField) record.getVariableField("952");
-			    DataField nineEightyOne = (DataField) record.getVariableField("981");
-			    DataField nineSixtyOne = (DataField) record.getVariableField("961");
-			    DataField twoSixtyFour = (DataField) record.getVariableField("264");
-			    
-				String title = marcUtils.getTitle(twoFourFive);						 
-				String fundCode = marcUtils.getFundCode(nineEighty);
-				// vendor code instantiated outside of loop because it will be the same for all orderLines and added to response later
-				vendorCode =  marcUtils.getVendorCode(nineEighty);
-				    
-				String quantity =  marcUtils.getQuantity(nineEighty);
-				Integer quantityNo = 0; //INIT
-			    if (quantity != null)  quantityNo = Integer.valueOf(quantity);
-			    
-				String price = marcUtils.getPrice(nineEightyOne);
-				String vendorItemId = marcUtils.getVendorItemId(nineSixtyOne);
-			    String locationName = marcUtils.getLocation(nineFiveTwo);
-			    
-			     
-				// LOOK UP THE ORGANIZATION (vendor) again!
-				// TODO: Refactor validateRequiredValues() to store org & fund IDs and avoid redundant HTTP requests
-				//logger.debug("lookupVendor");
-				try {
-					// URL encode organization code to avoid cql parse error on forward slash
-					String encodedOrgCode = URLEncoder.encode("\"" + vendorCode + "\"", StandardCharsets.UTF_8.name());
-					logger.debug("encodedOrgCode: " + encodedOrgCode);
+    public JSONArray upload(String fileName) throws IOException, InterruptedException, Exception {
+        long start = 0L; // to be used for timing
+        long end = 0L; // to be used for timing
+        logger.debug("...starting...");
+        JSONArray responseMessages = new JSONArray();
+        JSONArray errorMessages = new JSONArray();
 
-					String organizationEndpoint = baseOkapEndpoint
-							+ "organizations-storage/organizations?query=(code==" + encodedOrgCode + ")";
-					logger.debug("organizationEndpoint: " + organizationEndpoint);
-					String orgLookupResponse = apiService.callApiGet(organizationEndpoint, this.token);
-					JSONObject orgObject = new JSONObject(orgLookupResponse);
-					String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
-					order.put("vendor", vendorId);				
-				} catch (UnsupportedEncodingException e) {
-					logger.error(e.getMessage());
-				}
+        // COLLECT VALUES FROM THE CONFIGURATION FILE
+        // TODO: Fix this typo everywhere... Should be baseOkapiEndpoint
+        this.baseOkapEndpoint = (String) getMyContext().getAttribute("baseOkapEndpoint");
+        String apiUsername = (String) getMyContext().getAttribute("okapi_username");
+        String apiPassword = (String) getMyContext().getAttribute("okapi_password");
+        tenant = (String) getMyContext().getAttribute("tenant");
+        // we might need this later to validate if resources are electronic...leave
+        // commented out
+        // String permELocationName = (String)
+        // getMyContext().getAttribute("permELocation");
+        String noteTypeName = (String) getMyContext().getAttribute("noteType");
+        String materialTypeName = (String) getMyContext().getAttribute("materialType");
+        String billToDefault = (String) getMyContext().getAttribute("billToDefault");
+        String billToApprovals = (String) getMyContext().getAttribute("billToApprovals");
 
-        // Determine billTo/shipTo address
-        String recordSource = marcUtils.getRecordSource(record);
-        String billingUUID = new String();
-        if (recordSource.equals("appr")) {
-            billingUUID = this.billingMap.get(billToApprovals);
-        } else {
-            billingUUID = this.billingMap.get(billToDefault);
+        JSONArray envErrors = validateEnvironment();
+        if (envErrors != null) {
+            return envErrors;
         }
-        order.put("billTo", billingUUID);
-        order.put("shipTo", billingUUID);
-				
-				//LOOK UP THE FUND
-				//logger.debug("lookup Fund");
-				String fundEndpoint = baseOkapEndpoint + "finance/funds?limit=30&offset=0&query=((code='" + fundCode + "'))";
-				String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
-				JSONObject fundsObject = new JSONObject(fundResponse);
-				String fundId = (String) fundsObject.getJSONArray("funds").getJSONObject(0).get("id");				
-				
-				//LOOK UP THE Acquisiton method
-                		//logger.debug("lookup acquisition method"); 
-				String acquistionMethodString = "Purchase";
-                		String acquisitionMethodUUID = getAcquisitionMethodUUID(acquistionMethodString);
 
-				// CREATING THE PURCHASE ORDER				
-				
-				
-				// POST ORDER LINE
-				// FOLIO Orders app will create the Instance and Holdings
-				JSONObject orderLine = new JSONObject();
-				JSONObject cost = new JSONObject();
-				JSONObject location = new JSONObject();
-				JSONArray locations = new JSONArray(); 
-				
-				// all items are assumed to be physical
-				JSONObject physical = new JSONObject();
-				// Item will be created afterwards via mod-copycat)
-				physical.put("createInventory", "Instance, Holding");
-				physical.put("materialType", lookupTable.get(materialTypeName));
-				orderLine.put("physical", physical);
-				orderLine.put("orderFormat", "Physical Resource");
-				cost.put("listUnitPrice", price);
-				cost.put("quantityPhysical", quantityNo);
-				location.put("quantityPhysical", quantityNo);
-				location.put("locationId", lookupTable.get(locationName + "-location"));
-				locations.put(location);
-				 
-				
-				// as of IRIS release vendorDetail is slightly more complex
-				if (StringUtils.isNotEmpty(vendorItemId)) {
+        // GET THE FOLIO TOKEN
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("username", apiUsername);
+        jsonObject.put("password", apiPassword);
+        jsonObject.put("tenant", tenant);
+
+        this.apiService = new ApiService(tenant);
+        this.token = this.apiService.callApiAuth(baseOkapEndpoint + "authn/login", jsonObject);
+
+        // GET THE UPLOADED FILE
+        String filePath = (String) myContext.getAttribute("uploadFilePath");
+        InputStream in = null;
+        // MAKE SURE A FILE WAS UPLOADED
+        InputStream is = null;
+        if (fileName != null) {
+            in = new FileInputStream(filePath + fileName);
+        } else {
+            JSONObject errorMessage = new JSONObject();
+            errorMessage.put("error", "no input file provided");
+            errorMessage.put("PONumber", "~error~");
+            errorMessages.put(errorMessage);
+            return errorMessages;
+        }
+
+        // READ THE MARC RECORD FROM THE FILE AND VALIDATE IT
+        // VALIDATES THE FUND CODE and VENDOR CODE DATA
+        // We don't want to continue if any of the marc records do not contain valid
+        // data
+        MarcReader reader = new MarcStreamReader(in);
+
+        JSONArray validateRequiredResult = validateRequiredValues(reader);
+        if (!validateRequiredResult.isEmpty())
+            return validateRequiredResult;
+
+        // SAVE REFERENCE TABLE VALUES (JUST LOOKUP THEM UP ONCE)
+        logger.debug("Get Lookup table");
+        if (myContext.getAttribute(Constants.LOOKUP_TABLE) == null) {
+            LookupUtil lookupUtil = new LookupUtil();
+            lookupUtil.setBaseOkapEndpoint(this.baseOkapEndpoint);
+            lookupUtil.setApiService(apiService);
+            lookupUtil.load();
+            this.lookupTable = lookupUtil.getReferenceValues(this.token);
+            String billingEndpoint = this.baseOkapEndpoint
+                    + "configurations/entries?query=(configName==tenant.addresses)";
+            this.billingMap = lookupUtil.getBillingAddresses(billingEndpoint, this.token);
+            myContext.setAttribute(Constants.LOOKUP_TABLE, lookupTable);
+            myContext.setAttribute(Constants.BILLINGMAP, billingMap);
+
+            logger.debug("put lookup table in context");
+        } else {
+            this.lookupTable = (HashMap<String, String>) myContext.getAttribute(Constants.LOOKUP_TABLE);
+            this.billingMap = (HashMap<String, String>) myContext.getAttribute(Constants.BILLINGMAP);
+            logger.debug("got lookup table from context");
+        }
+        String ISBNId = this.lookupTable.get("ISBN");
+        String personalNameTypeId = this.lookupTable.get("Personal name");
+
+        // READ THE MARC RECORD FROM THE FILE
+        in = new FileInputStream(filePath + fileName);
+        reader = new MarcStreamReader(in);
+
+        // GENERATE UUID for the PO
+
+        UUID orderUUID = UUID.randomUUID();
+        String vendorCode = new String();
+
+        // GET THE NEXT PO NUMBER
+        logger.trace("get next PO number");
+        String poNumber = this.apiService.callApiGet(baseOkapEndpoint + "orders/po-number", this.token);
+        JSONObject poNumberObj = new JSONObject(poNumber);
+        logger.trace("NEXT PO NUMBER: " + poNumberObj.get("poNumber"));
+
+        // CREATING THE PURCHASE ORDER
+        JSONObject order = new JSONObject();
+
+        order.put("orderType", "One-Time");
+        order.put("reEncumber", false);
+        order.put("id", orderUUID.toString());
+        order.put("approved", true);
+        order.put("workflowStatus", "Open");
+
+        JSONArray poLines = new JSONArray();
+
+        // map of records with orderline uuid as key
+        HashMap<String, Record> recordMap = new HashMap<String, Record>();
+
+        // iterator over records in the marc file.
+
+        logger.debug("reading marc file");
+        int numRec = 0;
+
+        while (reader.hasNext()) {
+            try {
+                Record record = reader.next();
+                // logger.debug(record.toString());
+
+                DataField twoFourFive = (DataField) record.getVariableField("245");
+                DataField nineEighty = (DataField) record.getVariableField("980");
+                DataField nineFiveTwo = (DataField) record.getVariableField("952");
+                DataField nineEightyOne = (DataField) record.getVariableField("981");
+                DataField nineSixtyOne = (DataField) record.getVariableField("961");
+                DataField twoSixtyFour = (DataField) record.getVariableField("264");
+
+                String title = marcUtils.getTitle(twoFourFive);
+                String fundCode = marcUtils.getFundCode(nineEighty);
+                // vendor code instantiated outside of loop because it will be the same for all
+                // orderLines and added to response later
+                vendorCode = marcUtils.getVendorCode(nineEighty);
+
+                String quantity = marcUtils.getQuantity(nineEighty);
+                Integer quantityNo = 0; // INIT
+                if (quantity != null)
+                    quantityNo = Integer.valueOf(quantity);
+
+                String price = marcUtils.getPrice(nineEightyOne);
+                String vendorItemId = marcUtils.getVendorItemId(nineSixtyOne);
+                String locationName = marcUtils.getLocation(nineFiveTwo);
+
+                // LOOK UP THE ORGANIZATION (vendor) again!
+                // TODO: Refactor validateRequiredValues() to store org & fund IDs and avoid
+                // redundant HTTP requests
+                // logger.debug("lookupVendor");
+                try {
+                    // URL encode organization code to avoid cql parse error on forward slash
+                    String encodedOrgCode = URLEncoder.encode("\"" + vendorCode + "\"", StandardCharsets.UTF_8.name());
+                    logger.debug("encodedOrgCode: " + encodedOrgCode);
+
+                    String organizationEndpoint = baseOkapEndpoint + "organizations-storage/organizations?query=(code=="
+                            + encodedOrgCode + ")";
+                    logger.debug("organizationEndpoint: " + organizationEndpoint);
+                    String orgLookupResponse = apiService.callApiGet(organizationEndpoint, this.token);
+                    JSONObject orgObject = new JSONObject(orgLookupResponse);
+                    String vendorId = (String) orgObject.getJSONArray("organizations").getJSONObject(0).get("id");
+                    order.put("vendor", vendorId);
+                } catch (UnsupportedEncodingException e) {
+                    logger.error(e.getMessage());
+                }
+
+                // Determine billTo/shipTo address
+                String recordSource = marcUtils.getRecordSource(record);
+                String billingUUID = new String();
+                if (recordSource.equals("appr")) {
+                    billingUUID = this.billingMap.get(billToApprovals);
+                } else {
+                    billingUUID = this.billingMap.get(billToDefault);
+                }
+                order.put("billTo", billingUUID);
+                order.put("shipTo", billingUUID);
+
+                // LOOK UP THE FUND
+                // logger.debug("lookup Fund");
+                String fundEndpoint = baseOkapEndpoint + "finance/funds?limit=30&offset=0&query=((code='" + fundCode
+                        + "'))";
+                String fundResponse = this.apiService.callApiGet(fundEndpoint, token);
+                JSONObject fundsObject = new JSONObject(fundResponse);
+                String fundId = (String) fundsObject.getJSONArray("funds").getJSONObject(0).get("id");
+
+                // LOOK UP THE Acquisiton method
+                // logger.debug("lookup acquisition method");
+                String acquistionMethodString = "Purchase";
+                String acquisitionMethodUUID = getAcquisitionMethodUUID(acquistionMethodString);
+
+                // CREATING THE PURCHASE ORDER
+
+                // POST ORDER LINE
+                // FOLIO Orders app will create the Instance and Holdings
+                JSONObject orderLine = new JSONObject();
+                JSONObject cost = new JSONObject();
+                JSONObject location = new JSONObject();
+                JSONArray locations = new JSONArray();
+
+                // all items are assumed to be physical
+                JSONObject physical = new JSONObject();
+                // Item will be created afterwards via mod-copycat)
+                physical.put("createInventory", "Instance, Holding");
+                physical.put("materialType", lookupTable.get(materialTypeName));
+                orderLine.put("physical", physical);
+                orderLine.put("orderFormat", "Physical Resource");
+                cost.put("listUnitPrice", price);
+                cost.put("quantityPhysical", quantityNo);
+                location.put("quantityPhysical", quantityNo);
+                location.put("locationId", lookupTable.get(locationName + "-location"));
+                locations.put(location);
+
+                // as of IRIS release vendorDetail is slightly more complex
+                if (StringUtils.isNotEmpty(vendorItemId)) {
                     JSONArray referenceNumbers = new JSONArray();
                     JSONObject vendorDetail = new JSONObject();
                     vendorDetail.put("instructions", ""); // required element, even if empty
@@ -275,36 +278,36 @@ public class OrderImport {
                     vendorDetail.put("referenceNumbers", referenceNumbers);
                     orderLine.put("vendorDetail", vendorDetail);
                 }
-				
-				UUID orderLineUUID = UUID.randomUUID();
-				// save the record
-				recordMap.put(orderLineUUID.toString(), record);
-				orderLine.put("id", orderLineUUID);
-				orderLine.put("source", "User");
-				cost.put("currency", "USD"); // TODO: get this from marc or use an env variable
-				orderLine.put("cost", cost);
-				orderLine.put("locations", locations);
-				orderLine.put("titleOrPackage", title);
-				//orderLine.put("acquisitionMethod", "Purchase");
-				orderLine.put("acquisitionMethod", acquisitionMethodUUID);
-				
-				// get the "internal note", which apparently will be used as a description 
-				String internalNotes =  marcUtils.getInternalNotes(nineEighty);
-				if (StringUtils.isNotEmpty(internalNotes)) {
-				    orderLine.put("description", internalNotes);
-				}
-				
-				// add a detailsObject if a receiving note or ISBN identifiers are found
+
+                UUID orderLineUUID = UUID.randomUUID();
+                // save the record
+                recordMap.put(orderLineUUID.toString(), record);
+                orderLine.put("id", orderLineUUID);
+                orderLine.put("source", "User");
+                cost.put("currency", "USD"); // TODO: get this from marc or use an env variable
+                orderLine.put("cost", cost);
+                orderLine.put("locations", locations);
+                orderLine.put("titleOrPackage", title);
+                // orderLine.put("acquisitionMethod", "Purchase");
+                orderLine.put("acquisitionMethod", acquisitionMethodUUID);
+
+                // get the "internal note", which apparently will be used as a description
+                String internalNotes = marcUtils.getInternalNotes(nineEighty);
+                if (StringUtils.isNotEmpty(internalNotes)) {
+                    orderLine.put("description", internalNotes);
+                }
+
+                // add a detailsObject if a receiving note or ISBN identifiers are found
                 JSONObject detailsObject = new JSONObject();
-                
-                // get ISBN values in a productIds array and add to detailsObject if not empty 
+
+                // get ISBN values in a productIds array and add to detailsObject if not empty
                 JSONArray productIds = new JSONArray();
                 JSONArray identifiers = marcUtils.buildIdentifiers(record, lookupTable);
                 Iterator identIter = identifiers.iterator();
                 while (identIter.hasNext()) {
                     JSONObject identifierObj = (JSONObject) identIter.next();
                     String identifierType = identifierObj.getString("identifierTypeId");
-                    String oldVal = identifierObj.getString("value"); 
+                    String oldVal = identifierObj.getString("value");
                     JSONObject productId = new JSONObject();
                     String newVal = StringUtils.substringBefore(oldVal, " ");
                     String qualifier = StringUtils.substringAfter(oldVal, " ");
@@ -313,28 +316,27 @@ public class OrderImport {
                     if (StringUtils.isNotEmpty(qualifier)) {
                         productId.put("qualifier", qualifier);
                     }
-                    productIds.put(productId); 
-                    
+                    productIds.put(productId);
+
                 }
                 if (productIds.length() > 0) {
                     logger.debug(productIds.toString(3));
                     detailsObject.put("productIds", productIds);
                 }
-                
+
                 // get the "receiving note"
-                String receivingNote =  marcUtils.getReceivingNote(nineEightyOne);
+                String receivingNote = marcUtils.getReceivingNote(nineEightyOne);
                 if (StringUtils.isNotEmpty(receivingNote)) {
                     detailsObject.put("receivingNote", receivingNote);
                 }
-                
-                if (! detailsObject.isEmpty()) {
-                    orderLine.put("details", detailsObject);   
+
+                if (!detailsObject.isEmpty()) {
+                    orderLine.put("details", detailsObject);
                 }
-                
-                
+
                 // add contributors
                 JSONArray contribArray = new JSONArray();
-                 
+
                 JSONArray contributors = marcUtils.buildContributors(record, lookupTable);
                 Iterator contribIter = contributors.iterator();
                 while (contribIter.hasNext()) {
@@ -348,46 +350,45 @@ public class OrderImport {
                     orderLine.put("contributors", contribArray);
                     logger.debug(contribArray.toString(3));
                 }
-				
-				// get rush value
-				String rush = marcUtils.getRush(nineEightyOne);
-				// TODO: check if match rush value to ;Rush:yes before adding to orderLine
+
+                // get rush value
+                String rush = marcUtils.getRush(nineEightyOne);
+                // TODO: check if match rush value to ;Rush:yes before adding to orderLine
                 if (StringUtils.isNotEmpty(rush) && StringUtils.contains(rush.toLowerCase(), "rush:yes")) {
                     orderLine.put("rush", true);
                 }
 
-				// get selector
-				String selector = marcUtils.getSelector(nineEighty);
-				if (StringUtils.isNotEmpty(selector)) {
-					orderLine.put("selector", selector);
-				} 
-				
-				// add publisher and publicationDate
+                // get selector
+                String selector = marcUtils.getSelector(nineEighty);
+                if (StringUtils.isNotEmpty(selector)) {
+                    orderLine.put("selector", selector);
+                }
+
+                // add publisher and publicationDate
                 String publisher = marcUtils.getPublisher(record);
                 if (StringUtils.isNotEmpty(publisher)) {
                     orderLine.put("publisher", publisher);
                 }
-                
+
                 if (twoSixtyFour != null) {
                     String pubYear = marcUtils.getPublicationDate(twoSixtyFour);
-                    if (StringUtils.isNotEmpty(pubYear)) {                        
+                    if (StringUtils.isNotEmpty(pubYear)) {
                         orderLine.put("publicationDate", pubYear);
                     }
                 }
-				
-				
-				// add fund distribution info
-				JSONArray funds = new JSONArray();
-				JSONObject fundDist = new JSONObject();
-				fundDist.put("code", fundCode);
-				fundDist.put("fundId", fundId);
-				fundDist.put("expenseClassId", Constants.EXPENSE_CLASS);
-				fundDist.put("distributionType", "percentage");
-				fundDist.put("value", 100);
-				funds.put(fundDist);
-				orderLine.put("fundDistribution", funds);
-				
-				// get requester
+
+                // add fund distribution info
+                JSONArray funds = new JSONArray();
+                JSONObject fundDist = new JSONObject();
+                fundDist.put("code", fundCode);
+                fundDist.put("fundId", fundId);
+                fundDist.put("expenseClassId", Constants.EXPENSE_CLASS);
+                fundDist.put("distributionType", "percentage");
+                fundDist.put("value", 100);
+                funds.put(fundDist);
+                orderLine.put("fundDistribution", funds);
+
+                // get requester
                 String requester = marcUtils.getRequester(nineEightyOne);
                 if (StringUtils.isNotEmpty(requester)) {
                     orderLine.put("requester", requester);
@@ -397,52 +398,53 @@ public class OrderImport {
                 // if rushPO is ever set, prefix the poNumber with "RUSH"
                 if (rushPO) {
                     order.put("poNumberPrefix", "RUSH");
-                    order.put("poNumber", "RUSH"+ poNumberObj.get("poNumber"));
+                    order.put("poNumber", "RUSH" + poNumberObj.get("poNumber"));
                 } else {
                     order.put("poNumber", poNumberObj.get("poNumber"));
                 }
-				orderLine.put("purchaseOrderId", orderUUID.toString());
-				poLines.put(orderLine);
-				order.put("compositePoLines", poLines);				
-			
-			} catch(Exception e) {
-				logger.error(e.toString());
-				JSONObject errorMessage = new JSONObject();
-				errorMessage.put("error",e.toString());
-				errorMessage.put("PONumber", poNumber);
-				errorMessages.put(errorMessage);
-				return errorMessages;
-			}
-			numRec++;
-		} 
-		
-		logger.debug("Here is the PO, order number: "+ poNumberObj.get("poNumber"));
-		logger.debug(order.toString(3));
-		
-		//POST THE ORDER AND LINE:
-		String orderResponse = apiService.callApiPostWithUtf8(this.baseOkapEndpoint + "orders/composite-orders", order, this.token);  
-		 
-		
-		//GET THE UPDATED PURCHASE ORDER FROM THE API AND PULL OUT THE ID FOR THE INSTANCE FOLIO CREATED:
-		logger.debug("getUpdatedPurchaseOrder");
-		String updatedPurchaseOrder = apiService.callApiGet(this.baseOkapEndpoint + "orders/composite-orders/" +orderUUID.toString() ,this.token); 
-		JSONObject updatedPurchaseOrderJson = new JSONObject(updatedPurchaseOrder);
-		logger.info("updated purchase order...");
-		logger.info(updatedPurchaseOrderJson.toString(3));
-		
-		 
-        numRec = 0;         
+                orderLine.put("purchaseOrderId", orderUUID.toString());
+                poLines.put(orderLine);
+                order.put("compositePoLines", poLines);
+
+            } catch (Exception e) {
+                logger.error(e.toString());
+                JSONObject errorMessage = new JSONObject();
+                errorMessage.put("error", e.toString());
+                errorMessage.put("PONumber", poNumber);
+                errorMessages.put(errorMessage);
+                return errorMessages;
+            }
+            numRec++;
+        }
+
+        logger.debug("Here is the PO, order number: " + poNumberObj.get("poNumber"));
+        logger.debug(order.toString(3));
+
+        // POST THE ORDER AND LINE:
+        String orderResponse = apiService.callApiPostWithUtf8(this.baseOkapEndpoint + "orders/composite-orders", order,
+                this.token);
+
+        // GET THE UPDATED PURCHASE ORDER FROM THE API AND PULL OUT THE ID FOR THE
+        // INSTANCE FOLIO CREATED:
+        logger.debug("getUpdatedPurchaseOrder");
+        String updatedPurchaseOrder = apiService
+                .callApiGet(this.baseOkapEndpoint + "orders/composite-orders/" + orderUUID.toString(), this.token);
+        JSONObject updatedPurchaseOrderJson = new JSONObject(updatedPurchaseOrder);
+        logger.info("updated purchase order...");
+        logger.info(updatedPurchaseOrderJson.toString(3));
+
+        numRec = 0;
         start = System.currentTimeMillis();
         Iterator<Object> poLineIterator = updatedPurchaseOrderJson.getJSONArray("compositePoLines").iterator();
-        
-        while (poLineIterator.hasNext()) { 
+
+        while (poLineIterator.hasNext()) {
             JSONObject poLineObject = (JSONObject) poLineIterator.next();
-			try {
-			     
-				JSONObject responseMessage = new JSONObject();
+            try {
+
+                JSONObject responseMessage = new JSONObject();
                 responseMessage.put("poNumber", updatedPurchaseOrderJson.getString("poNumber"));
-				responseMessage.put("poUUID", orderUUID.toString());
-				
+                responseMessage.put("poUUID", orderUUID.toString());
+
                 String poLineUUID = poLineObject.getString("id");
                 String poLineNumber = poLineObject.getString("poLineNumber");
                 String instanceId = poLineObject.getString("instanceId");
@@ -450,15 +452,15 @@ public class OrderImport {
                 String requester = poLineObject.optString("requester");
                 String internalNote = poLineObject.optString("description");
                 JSONObject polDetails = poLineObject.optJSONObject("details");
-                
+
                 Record record = recordMap.get(poLineUUID);
-                
+
                 List<String> isbnList = new ArrayList<String>();
-				String receivingNote = null;
-        
-				if (polDetails != null) {
-					JSONArray polProductIds = polDetails.optJSONArray("productIds");
-					receivingNote = polDetails.optString("receivingNote");
+                String receivingNote = null;
+
+                if (polDetails != null) {
+                    JSONArray polProductIds = polDetails.optJSONArray("productIds");
+                    receivingNote = polDetails.optString("receivingNote");
 
                     // Extract ISBNs from POL productIds to display in results
                     Iterator<Object> isbnIterator = polProductIds.iterator();
@@ -466,36 +468,38 @@ public class OrderImport {
                         JSONObject productIdObj = (JSONObject) isbnIterator.next();
                         isbnList.add((String) productIdObj.get("productId"));
                     }
-				}
+                }
 
-        String holdings = apiService.callApiGet(baseOkapEndpoint + "holdings-storage/holdings?limit=0&query=(instanceId==" + instanceId + ")", token);
-				JSONObject holdingsJson = new JSONObject(holdings);
-        int holdingsCount = (int) holdingsJson.get("totalRecords");
-				
-				responseMessage.put("poLineUUID", poLineUUID);
-				responseMessage.put("poLineNumber", poLineNumber);
-				responseMessage.put("holdingsCount", holdingsCount);
-				responseMessage.put("title", title);
-				responseMessage.put("requester", requester);
-				responseMessage.put("internalNote", internalNote);
-				responseMessage.put("receivingNote", receivingNote);
-				responseMessage.put("vendorCode", vendorCode);
-				responseMessage.put("isbn", isbnList);
-				
-				
-				
-				// add 490 and 830 raw marc fields as a list to response
-				List<String> seriesFields = marcUtils.getSeriesFields(record);
-				if (seriesFields.size() > 0) {
-				    responseMessage.put("seriesFields", seriesFields);
-				}
-				
-				// Get the Inventory Instance FOLIO created, so we can render the Instance HRID in the results
-				logger.debug("get InstanceResponse");
-				String instanceResponse = apiService.callApiGet(this.baseOkapEndpoint + "inventory/instances/" + instanceId, this.token);
-				JSONObject instanceAsJson = new JSONObject(instanceResponse);
-				logger.debug(instanceAsJson.toString(3));
-				String hrid = instanceAsJson.getString("hrid");
+                String holdings = apiService.callApiGet(
+                        baseOkapEndpoint + "holdings-storage/holdings?limit=0&query=(instanceId==" + instanceId + ")",
+                        token);
+                JSONObject holdingsJson = new JSONObject(holdings);
+                int holdingsCount = (int) holdingsJson.get("totalRecords");
+
+                responseMessage.put("poLineUUID", poLineUUID);
+                responseMessage.put("poLineNumber", poLineNumber);
+                responseMessage.put("holdingsCount", holdingsCount);
+                responseMessage.put("title", title);
+                responseMessage.put("requester", requester);
+                responseMessage.put("internalNote", internalNote);
+                responseMessage.put("receivingNote", receivingNote);
+                responseMessage.put("vendorCode", vendorCode);
+                responseMessage.put("isbn", isbnList);
+
+                // add 490 and 830 raw marc fields as a list to response
+                List<String> seriesFields = marcUtils.getSeriesFields(record);
+                if (seriesFields.size() > 0) {
+                    responseMessage.put("seriesFields", seriesFields);
+                }
+
+                // Get the Inventory Instance FOLIO created, so we can render the Instance HRID
+                // in the results
+                logger.debug("get InstanceResponse");
+                String instanceResponse = apiService
+                        .callApiGet(this.baseOkapEndpoint + "inventory/instances/" + instanceId, this.token);
+                JSONObject instanceAsJson = new JSONObject(instanceResponse);
+                logger.debug(instanceAsJson.toString(3));
+                String hrid = instanceAsJson.getString("hrid");
                 responseMessage.put("instanceHrid", hrid);
                 responseMessage.put("instanceUUID", instanceId);
 
@@ -511,7 +515,8 @@ public class OrderImport {
                 logger.info("DIFF (MINS): " + duration.toMinutes());
                 logger.info(getMyContext().getAttribute("baseFolioUrl") + "inventory/view/" + instanceId);
 
-                // Only proceed with overlay of instance (and holdings & item creation) if instance is newly created
+                // Only proceed with overlay of instance (and holdings & item creation) if
+                // instance is newly created
                 // -- consider newly created within the last hour
                 if (duration.toHours() < 1) {
                     // Transform the MARC record into JSON
@@ -530,7 +535,8 @@ public class OrderImport {
                     copycatImportObject.put("profileId", Constants.COPYCAT_DEFAULT_PROFILE);
                     copycatImportObject.put("record", marcJsonObject);
 
-                    // get barcode from 976$p, if it exists, switch to shelf-ready mod-copycat profile
+                    // get barcode from 976$p, if it exists, switch to shelf-ready mod-copycat
+                    // profile
                     DataField nineSevenSix = (DataField) record.getVariableField("976");
                     String barcode = marcUtils.getBarcode(nineSevenSix);
                     if (StringUtils.isNotEmpty(barcode)) {
@@ -539,29 +545,30 @@ public class OrderImport {
 
                     // Overlay/Update Inventory Instance & Holding via mod-copycat
                     logger.debug("post copycatImportObject");
-                    String copycatResponse = apiService.callApiPostWithUtf8(this.baseOkapEndpoint + "copycat/imports", copycatImportObject, this.token);
+                    String copycatResponse = apiService.callApiPostWithUtf8(this.baseOkapEndpoint + "copycat/imports",
+                            copycatImportObject, this.token);
                 }
-				
-				responseMessages.put(responseMessage);
-				numRec++;				
-				
-			} catch(Exception e) {
-				e.printStackTrace();
-				logger.error(e.toString());
-				JSONObject errorMessage = new JSONObject();
-				errorMessage.put("error", e.toString());
-				errorMessage.put("PONumber", poNumberObj.get("poNumber"));
-				errorMessages.put(errorMessage);
-				return errorMessages;
-			}
-			
-		}
 
-		logger.info("Number of records: "+ numRec);
-		logger.info(responseMessages.toString(3));
-		return responseMessages;
+                responseMessages.put(responseMessage);
+                numRec++;
 
-	}
+            } catch (Exception e) {
+                e.printStackTrace();
+                logger.error(e.toString());
+                JSONObject errorMessage = new JSONObject();
+                errorMessage.put("error", e.toString());
+                errorMessage.put("PONumber", poNumberObj.get("poNumber"));
+                errorMessages.put(errorMessage);
+                return errorMessages;
+            }
+
+        }
+
+        logger.info("Number of records: " + numRec);
+        logger.info(responseMessages.toString(3));
+        return responseMessages;
+
+    }
 	
 	
 	// this method validates required values and will return a JSONArray with error messages or an empty array if it passes

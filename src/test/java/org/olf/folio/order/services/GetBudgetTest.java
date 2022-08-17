@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.FileOutputStream;
+import java.io.PrintStream;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.Ignore; 
@@ -13,7 +16,9 @@ import org.junit.jupiter.api.Test;
 
 public class GetBudgetTest extends ApiBaseTest { 
 	
-
+    boolean debug = false;
+    PrintStream stdout = System.out;
+    
 	public GetBudgetTest() {
 		// TODO Auto-generated constructor stub
 	} 
@@ -26,15 +31,27 @@ public class GetBudgetTest extends ApiBaseTest {
 	@Test
 	public void testGetAllBudget() { 
 		
-		String budgetEndpoint = getBaseOkapEndpoint() + "finance/budgets?limit=1";
+		String budgetEndpoint = getBaseOkapEndpoint() + "finance/budgets?limit=1000";
 		//System.out.println("endpoint: "+ budgetEndpoint);
 		try {
 			
 			String budgetResponse = getApiService().callApiGet(budgetEndpoint, getToken());
 			JSONObject budgetsObject = new JSONObject(budgetResponse);
-			//System.out.println(budgetsObject.toString(3));
-			 
-			JSONArray budgetsArray = budgetsObject.getJSONArray("budgets");
+			JSONArray budgetsArray = budgetsObject.getJSONArray("budgets"); 
+			if (debug) {
+			    System.setOut(new PrintStream(new FileOutputStream("/cul/src/order-import-poc/output.json")));
+			    //System.out.println(budgetsObject.toString(3));
+			    for (int i = 0; i < budgetsArray.length(); i++) {
+                    JSONObject fundObj = (JSONObject) budgetsArray.get(i);
+                     
+                    System.out.println("name: " + fundObj.get("name"));
+                    //System.out.println("id: " + fundObj.get("id"));
+                    System.out.println("available: " + fundObj.get("available"));
+                    System.out.println();
+                }
+			    System.setOut(stdout);
+			} 
+			
 			assertNotNull(budgetsArray);
 			assertTrue(budgetsArray.length() > 0);
 			
@@ -45,19 +62,25 @@ public class GetBudgetTest extends ApiBaseTest {
 	
 	@Test
 	public void testGetBudget() { 
-		String fundCode = "p6793";
-		String badFundCode = "bad";
-		String fiscalYearCode = "FY2021";
+		String fundCode = "6945";
+		String badFundCode = "p2651";
+		String fiscalYearCode = "FY2023";
 		String budgetEndpoint = getBaseOkapEndpoint() + "finance/budgets?query=(name=="  + fundCode + "-" + fiscalYearCode + ")";
-		//System.out.println("endpoint: "+ budgetEndpoint);
+		
 		try { 
 		    String budgetResponse = getApiService().callApiGet(budgetEndpoint, getToken());
 		    JSONObject budgetsObject = new JSONObject(budgetResponse);
-		    assertNotNull(budgetsObject);
-		    int totalRecords = (Integer) budgetsObject.get("totalRecords");
-		    assertNotNull(totalRecords);
-		    assertEquals(totalRecords, 1);
-		    //System.out.println(budgetsObject.toString(3));	 
+		    if (debug) {
+		        System.out.println("endpoint: "+ budgetEndpoint);
+		        System.out.println("fundcode: "+ fundCode);
+		        System.out.println(budgetsObject.toString(3));
+            } else  {
+		        assertNotNull(budgetsObject);
+		        int totalRecords = (Integer) budgetsObject.get("totalRecords");
+		        assertNotNull(totalRecords);
+		        assertEquals(totalRecords, 1);
+		        //System.out.println(budgetsObject.toString(3));
+            }
 		} catch (Exception e) {
 		    fail(e.getMessage());
 		}
@@ -66,14 +89,20 @@ public class GetBudgetTest extends ApiBaseTest {
 		try { 
 		    String budgetResponse = getApiService().callApiGet(budgetEndpoint, getToken());
 		    JSONObject budgetsObject = new JSONObject(budgetResponse);
-		    assertNotNull(budgetsObject);
-		    int totalRecords = (Integer) budgetsObject.get("totalRecords");
-		    assertNotNull(totalRecords);
-		    assertEquals(totalRecords, 0); 
+		    if (debug) {
+		        System.out.println("endpoint: "+ budgetEndpoint);
+		        System.out.println("bad fundcode: "+ badFundCode);
+                System.out.println(budgetsObject.toString(3));
+            } else  {
+                assertNotNull(budgetsObject);
+                int totalRecords = (Integer) budgetsObject.get("totalRecords");
+                assertNotNull(totalRecords);
+                assertEquals(totalRecords, 1);
+                //System.out.println(budgetsObject.toString(3));
+            } 
 		} catch (Exception e) {
 			fail(e.getMessage());
 		}
-	}
-	
+	} 
 	
 }
