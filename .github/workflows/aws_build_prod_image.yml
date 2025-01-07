@@ -3,7 +3,7 @@ on:
     branches:
       - main
     paths-ignore:
-      - '.github/workflows' # prevent annoying rebuilds while editing workflow configs
+      - '.github/workflows/*' # prevent annoying rebuilds while editing workflow configs
   workflow_dispatch: # allows for manual trigger via UI/CLI/API
 
 name: Build Production Docker Container Image and Push to ECR
