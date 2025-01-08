@@ -6,7 +6,7 @@ on:
       - '.github/workflows/*' # prevent annoying rebuilds while editing workflow configs
   workflow_dispatch: # allows for manual trigger via UI/CLI/API
 
-name: Build Production Docker Container Image and Push to ECR
+name: Build Dev Image and Push to ECR
 
 jobs:
   deploy:
