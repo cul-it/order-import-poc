@@ -8,6 +8,10 @@ on:
 
 name: Build Dev Image and Push to ECR
 
+env:
+  ECS_CLUSTER: 'folio-order-import-api-dev'
+  ECS_SERVICE: 'folio-order-import'
+
 jobs:
   deploy:
     name: Deploy
@@ -41,4 +45,7 @@ jobs:
           # be deployed to ECS.
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          
+
+      - name: Force New Deployment
+        run: | 
+          aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --force-new-deployment
